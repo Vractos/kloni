@@ -1,4 +1,4 @@
-package domain
+package entity
 
 import "github.com/google/uuid"
 
@@ -13,6 +13,11 @@ type MeliCredentials struct {
 
 type Store struct {
 	ID              uuid.UUID
+	Email           string
 	Name            string
 	MeliCredentials MeliCredentials
+}
+
+func NewUser() (*Store, error) {
+	return &Store{}
 }
