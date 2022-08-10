@@ -12,12 +12,16 @@ type MeliCredentials struct {
 }
 
 type Store struct {
-	ID              uuid.UUID
+	ID              string
 	Email           string
 	Name            string
+	Password        string
 	MeliCredentials MeliCredentials
 }
 
 func NewUser() (*Store, error) {
-	return &Store{}
+	store := Store{
+		ID: uuid.NewString(),
+	}
+	return &store, nil
 }
