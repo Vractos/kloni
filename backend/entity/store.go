@@ -2,26 +2,27 @@ package entity
 
 import "github.com/google/uuid"
 
-type MeliCredentials struct {
-	AccessToken  string
-	TokenType    string
-	ExpiresIn    int
-	Scope        string
-	UserID       int
-	RefreshToken string
-}
-
 type Store struct {
 	ID              string
 	Email           string
 	Name            string
 	Password        string
-	MeliCredentials MeliCredentials
+	MeliCredentials struct {
+		AccessToken  string
+		TokenType    string
+		ExpiresIn    int
+		Scope        string
+		UserID       int
+		RefreshToken string
+	}
 }
 
-func NewUser() (*Store, error) {
+func NewUser(email, password, name string) (*Store, error) {
 	store := Store{
-		ID: uuid.NewString(),
+		ID:       uuid.NewString(),
+		Email:    email,
+		Password: password,
+		Name:     name,
 	}
 	return &store, nil
 }
