@@ -1,9 +1,7 @@
 package entity
 
-import "github.com/google/uuid"
-
 type Store struct {
-	ID              string
+	ID              ID
 	Email           string
 	Name            string
 	Password        string
@@ -17,12 +15,11 @@ type Store struct {
 	}
 }
 
-func NewUser(email, password, name string) (*Store, error) {
+func NewStore(email, name, password string) (*Store, error) {
 	store := Store{
-		ID:       uuid.NewString(),
+		ID:       NewID(),
 		Email:    email,
 		Password: password,
-		Name:     name,
 	}
 	return &store, nil
 }
