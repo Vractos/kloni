@@ -1,4 +1,4 @@
-module github.com/Vractos/dolly
+module github.com/Vractos/dolly/backend
 
 go 1.18
 
