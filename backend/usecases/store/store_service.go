@@ -1,6 +1,9 @@
 package store
 
-import "github.com/Vractos/dolly/backend/entity"
+import (
+	"github.com/Vractos/dolly/backend/adapter/interfaces"
+	"github.com/Vractos/dolly/backend/entity"
+)
 
 type StoreService struct {
 	repo StoreRepository
