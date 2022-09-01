@@ -14,7 +14,11 @@ type Writer interface {
 	Delete(id entity.ID) error
 }
 
-type StoreRepository interface {
+type Repository interface {
 	Reader
 	Writer
+}
+
+type UseCase interface {
+	RegisterStore(input RegisterStoreDtoInput) (entity.ID, error)
 }
