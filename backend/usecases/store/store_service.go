@@ -1,7 +1,6 @@
 package store
 
 import (
-	"github.com/Vractos/dolly/backend/adapter/interfaces"
 	"github.com/Vractos/dolly/backend/entity"
 )
 

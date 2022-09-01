@@ -1,4 +1,4 @@
-package interfaces
+package store
 
 import (
 	"github.com/Vractos/dolly/backend/entity"
