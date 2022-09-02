@@ -9,7 +9,7 @@ import (
 	"github.com/Vractos/dolly/backend/usecases/store"
 )
 
-func registerStore(service store.UseCase) http.Handler {
+func RegisterStore(service store.UseCase) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		errorMessage := "Error adding store"
 		input := &store.RegisterStoreDtoInput{}
