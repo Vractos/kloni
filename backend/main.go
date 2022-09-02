@@ -16,6 +16,13 @@ func main() {
 	}
 
 	storeService := store.NewStoreService()
-	http.Handle("/store", handler.RegisterStore(storeService))
-	http.ListenAndServe(":8080", nil)
+
+	mux := http.NewServeMux()
+	mux.Handle("/store", handler.RegisterStore(storeService))
+
+	log.Println("Listing on 8080...")
+	err = http.ListenAndServe(":8080", mux)
+	if err != nil {
+		log.Panic(err.Error())
+	}
 }
