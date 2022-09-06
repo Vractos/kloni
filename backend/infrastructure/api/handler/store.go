@@ -9,8 +9,13 @@ import (
 	"github.com/Vractos/dolly/backend/usecases/store"
 )
 
-func registerStore(service store.UseCase) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func registerStore(service store.UseCase) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			w.Write([]byte("Method Not Allowed"))
+			return
+		}
 		errorMessage := "Error adding store"
 		input := &store.RegisterStoreDtoInput{}
 		err := json.NewDecoder(r.Body).Decode(input)
@@ -25,6 +30,7 @@ func registerStore(service store.UseCase) http.Handler {
 			log.Println(err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(errorMessage))
+			return
 		}
 		output := &presenter.Store{
 			ID:    id,
@@ -38,7 +44,9 @@ func registerStore(service store.UseCase) http.Handler {
 			w.Write([]byte(errorMessage))
 			return
 		}
-	})
+	}
 }
 
-// func MakeStoreHandlers(r *http.ServeMux.)
+func MakeStoreHandlers(service store.UseCase) http.HandlerFunc {
+
+}

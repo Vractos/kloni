@@ -18,7 +18,7 @@ func main() {
 	storeService := store.NewStoreService()
 
 	mux := http.NewServeMux()
-	mux.Handle("/store", handler.RegisterStore(storeService))
+	mux.HandleFunc("/store", handler.MakeStoreHandlers(storeService))
 
 	log.Println("Listing on 8080...")
 	err = http.ListenAndServe(":8080", mux)
