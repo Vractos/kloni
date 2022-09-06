@@ -7,15 +7,11 @@ import (
 
 	"github.com/Vractos/dolly/backend/infrastructure/api/presenter"
 	"github.com/Vractos/dolly/backend/usecases/store"
+	"github.com/go-chi/chi/v5"
 )
 
 func registerStore(service store.UseCase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			w.Write([]byte("Method Not Allowed"))
-			return
-		}
 		errorMessage := "Error adding store"
 		input := &store.RegisterStoreDtoInput{}
 		err := json.NewDecoder(r.Body).Decode(input)
@@ -47,6 +43,8 @@ func registerStore(service store.UseCase) http.HandlerFunc {
 	}
 }
 
-func MakeStoreHandlers(service store.UseCase) http.HandlerFunc {
-
+func MakeStoreHandlers(r chi.Router, service store.UseCase) {
+	r.Route("/store", func(r chi.Router) {
+		r.Post("/", registerStore(service))
+	})
 }
