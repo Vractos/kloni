@@ -1,7 +1,10 @@
 package repository
 
 import (
-	"database/sql"
+	"context"
+
+	"github.com/Vractos/dolly/backend/entity"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4"
 )
 
@@ -11,4 +14,32 @@ type StorePostgreSQL struct {
 
 func NewStorePostgreSQL(db *pgx.Conn) *StorePostgreSQL {
 	return &StorePostgreSQL{db: db}
+}
+
+// Get implements store.Repository
+func (r *StorePostgreSQL) Get(id string) (*entity.Store, error) {
+	panic("unimplemented")
+}
+
+// Create implements store.Repository
+func (r *StorePostgreSQL) Create(e *entity.Store) (uuid.UUID, error) {
+	_, err := r.db.Exec(context.Background(), `
+    INSERT INTO store (id, name, email, password)
+    VALUES($1,$2,$3,$4)
+  `, e.ID, e.Name, e.Email, e.Password)
+	if err != nil {
+		return e.ID, err
+	}
+
+	return e.ID, nil
+}
+
+// Delete implements store.Repository
+func (r *StorePostgreSQL) Delete(id uuid.UUID) error {
+	panic("unimplemented")
+}
+
+// Update implements store.Repository
+func (r *StorePostgreSQL) Update(e *entity.Store) error {
+	panic("unimplemented")
 }

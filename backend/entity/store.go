@@ -19,6 +19,7 @@ func NewStore(email, name, password string) (*Store, error) {
 	store := Store{
 		ID:       NewID(),
 		Email:    email,
+		Name:     name,
 		Password: password,
 	}
 	return &store, nil

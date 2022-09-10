@@ -5,14 +5,11 @@ import (
 )
 
 type StoreService struct {
-	// repo Repository
+	repo Repository
 }
 
-// func NewStoreService(repository Repository) *StoreService {
-// 	return &StoreService{repo: repository}
-// }
-func NewStoreService() *StoreService {
-	return &StoreService{}
+func NewStoreService(repository Repository) *StoreService {
+	return &StoreService{repo: repository}
 }
 
 func (s *StoreService) RegisterStore(input RegisterStoreDtoInput) (entity.ID, error) {
@@ -20,6 +17,5 @@ func (s *StoreService) RegisterStore(input RegisterStoreDtoInput) (entity.ID, er
 	if err != nil {
 		return store.ID, err
 	}
-	// return s.repo.Create(store)
-	return store.ID, nil
+	return s.repo.Create(store)
 }

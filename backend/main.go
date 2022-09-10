@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
+	"github.com/Vractos/dolly/backend/adapter/repository"
 	"github.com/Vractos/dolly/backend/infrastructure/api/handler"
 	"github.com/Vractos/dolly/backend/usecases/store"
 	"github.com/go-chi/chi/v5"
@@ -15,12 +18,19 @@ import (
 
 func main() {
 	err := godotenv.Load()
+	// if err != nil {
+	// 	log.Fatalf("Error loading .env file: %v", err)
+	// }
+	dataSourceName := fmt.Sprintf("postgresql://%s:%s@%s:5432/%s", os.Getenv("POSTGRES_USER"), os.Getenv("POSTGRES_PASSWORD"), os.Getenv("POSTGRES_HOST"), os.Getenv("POSTGRES_DB_NAME"))
+	conn, err := pgx.Connect(context.Background(), dataSourceName)
 	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+		os.Exit(1)
 	}
-	conn, err := pgx.Connect(context.Background())
+	defer conn.Close(context.Background())
 
-	storeService := store.NewStoreService()
+	storeRepo := repository.NewStorePostgreSQL(conn)
+	storeService := store.NewStoreService(storeRepo)
 
 	// TODO: Make our own router from scratch, based in Radix Tree
 	r := chi.NewRouter()
