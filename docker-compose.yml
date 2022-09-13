@@ -12,7 +12,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/infrastructure/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./infrastructure/db/init.sql:/docker-entrypoint-initdb.d/init.sql
 
 
   pgadmin:

@@ -1,7 +1,7 @@
 package store
 
 import (
-	"github.com/Vractos/dolly/backend/entity"
+	"github.com/Vractos/dolly/entity"
 )
 
 type StoreService struct {

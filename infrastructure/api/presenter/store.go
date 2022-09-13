@@ -1,7 +1,7 @@
 package presenter
 
 import (
-	"github.com/Vractos/dolly/backend/entity"
+	"github.com/Vractos/dolly/entity"
 )
 
 type Store struct {

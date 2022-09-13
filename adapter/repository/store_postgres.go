@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/Vractos/dolly/backend/entity"
+	"github.com/Vractos/dolly/entity"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4"
 )
