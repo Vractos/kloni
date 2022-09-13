@@ -17,10 +17,10 @@ import (
 )
 
 func main() {
-	err := godotenv.Load()
-	// if err != nil {
-	// 	log.Fatalf("Error loading .env file: %v", err)
-	// }
+	err := godotenv.Load("../.env")
+	if err != nil {
+		log.Fatalf("Error loading .env file: %v", err)
+	}
 	dataSourceName := fmt.Sprintf("postgresql://%s:%s@%s:5432/%s", os.Getenv("POSTGRES_USER"), os.Getenv("POSTGRES_PASSWORD"), os.Getenv("POSTGRES_HOST"), os.Getenv("POSTGRES_DB_NAME"))
 	conn, err := pgx.Connect(context.Background(), dataSourceName)
 	if err != nil {
