@@ -4,7 +4,6 @@ type Store struct {
 	ID              ID
 	Email           string
 	Name            string
-	Password        string
 	MeliCredentials struct {
 		AccessToken  string
 		TokenType    string
@@ -15,12 +14,11 @@ type Store struct {
 	}
 }
 
-func NewStore(email, name, password string) (*Store, error) {
+func NewStore(email, name string) (*Store, error) {
 	store := Store{
-		ID:       NewID(),
-		Email:    email,
-		Name:     name,
-		Password: password,
+		ID:    NewID(),
+		Email: email,
+		Name:  name,
 	}
 	return &store, nil
 }

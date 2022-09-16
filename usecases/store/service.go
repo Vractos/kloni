@@ -13,7 +13,7 @@ func NewStoreService(repository Repository) *StoreService {
 }
 
 func (s *StoreService) RegisterStore(input RegisterStoreDtoInput) (entity.ID, error) {
-	store, err := entity.NewStore(input.Email, input.Name, input.Password)
+	store, err := entity.NewStore(input.Email, input.Name)
 	if err != nil {
 		return store.ID, err
 	}

@@ -24,9 +24,9 @@ func (r *StorePostgreSQL) Get(id string) (*entity.Store, error) {
 // Create implements store.Repository
 func (r *StorePostgreSQL) Create(e *entity.Store) (uuid.UUID, error) {
 	_, err := r.db.Exec(context.Background(), `
-    INSERT INTO store (id, name, email, password)
-    VALUES($1,$2,$3,$4)
-  `, e.ID, e.Name, e.Email, e.Password)
+    INSERT INTO store (id, name, email)
+    VALUES($1,$2,$3)
+  `, e.ID, e.Name, e.Email)
 	if err != nil {
 		return e.ID, err
 	}

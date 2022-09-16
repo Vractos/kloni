@@ -29,9 +29,7 @@ func registerStore(service store.UseCase) http.HandlerFunc {
 			return
 		}
 		output := &presenter.Store{
-			ID:    id,
-			Email: input.Email,
-			Name:  input.Name,
+			ID: id,
 		}
 
 		w.WriteHeader(http.StatusCreated)
