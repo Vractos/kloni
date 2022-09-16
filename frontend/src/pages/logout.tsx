@@ -6,7 +6,7 @@ const LogoutButton = () => {
 
   return (
     // <button onClick={() => logout({ returnTo: window.location.origin })}>
-    <button onClick={() => getAccessTokenSilently({audience:"https://api.atrati.com"}).then(s => console.log(s))}>
+    <button onClick={() => getAccessTokenSilently({audience: import.meta.env.VITE_AUTH0_AUDIENCE}).then(s => console.log(s))}>
       Log Out
     </button>
   );
