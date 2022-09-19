@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"net/url"
@@ -9,19 +10,24 @@ import (
 	"strings"
 	"time"
 
-	"github.com/auth0/go-jwt-middleware/v2"
+	"github.com/Vractos/dolly/pkg/contexts"
+	jwtmiddleware "github.com/auth0/go-jwt-middleware/v2"
 	"github.com/auth0/go-jwt-middleware/v2/jwks"
 	"github.com/auth0/go-jwt-middleware/v2/validator"
 )
 
 // CustomClaims contains custom data we want from the token.
 type CustomClaims struct {
-	Scope string `json:"scope"`
+	InternalID string `json:"internal_id,omitempty"`
+	Scope      string `json:"scope"`
 }
 
 // Validate does nothing for this example, but we need
 // it to satisfy validator.CustomClaims interface.
 func (c CustomClaims) Validate(ctx context.Context) error {
+	if c.InternalID == "" {
+		return errors.New("store id not provided")
+	}
 	return nil
 }
 
@@ -57,7 +63,6 @@ func EnsureValidToken() func(next http.Handler) http.Handler {
 		w.WriteHeader(http.StatusUnauthorized)
 		w.Write([]byte(`{"message":"Failed to validate JWT."}`))
 	}
-
 	middleware := jwtmiddleware.New(
 		jwtValidator.ValidateToken,
 		jwtmiddleware.WithErrorHandler(errorHandler),
@@ -78,4 +83,13 @@ func (c CustomClaims) HasScope(expectedScope string) bool {
 	}
 
 	return false
+}
+
+func AddStoreIDToCtx(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		claims := r.Context().Value(jwtmiddleware.ContextKey{}).(*validator.ValidatedClaims)
+		storeId := claims.CustomClaims.(*CustomClaims).InternalID
+		r = r.Clone(context.WithValue(r.Context(), contexts.ContextKeyStoreId, storeId))
+		next.ServeHTTP(w, r)
+	})
 }
