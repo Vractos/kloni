@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Vractos/dolly/pkg/contexts"
+	"github.com/Vractos/dolly/pkg/contexttools"
 	jwtmiddleware "github.com/auth0/go-jwt-middleware/v2"
 	"github.com/auth0/go-jwt-middleware/v2/jwks"
 	"github.com/auth0/go-jwt-middleware/v2/validator"
@@ -85,11 +85,14 @@ func (c CustomClaims) HasScope(expectedScope string) bool {
 	return false
 }
 
+// Extract StoreID (internal_id) from CustomClaims and add to request context.
+//
+// Must only be used after the EnsureValidToken method on the middleware chain
 func AddStoreIDToCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		claims := r.Context().Value(jwtmiddleware.ContextKey{}).(*validator.ValidatedClaims)
 		storeId := claims.CustomClaims.(*CustomClaims).InternalID
-		r = r.Clone(context.WithValue(r.Context(), contexts.ContextKeyStoreId, storeId))
+		r = r.Clone(context.WithValue(r.Context(), contexttools.ContextKeyStoreId, storeId))
 		next.ServeHTTP(w, r)
 	})
 }

@@ -1,4 +1,4 @@
-package contexts
+package contexttools
 
 import (
 	"context"
