@@ -9,7 +9,6 @@ import (
 
 	"github.com/Vractos/dolly/adapter/repository"
 	"github.com/Vractos/dolly/infrastructure/api/handler"
-	mdw "github.com/Vractos/dolly/infrastructure/api/middleware"
 	"github.com/Vractos/dolly/usecases/store"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -36,7 +35,6 @@ func main() {
 	// TODO: Make our own router from scratch, based in Radix Tree
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
-	r.Use(mdw.EnsureValidToken())
 
 	handler.MakeStoreHandlers(r, storeService)
 
