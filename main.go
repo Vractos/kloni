@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/Vractos/dolly/adapter/api/handler"
 	"github.com/Vractos/dolly/adapter/repository"
-	"github.com/Vractos/dolly/infrastructure/api/handler"
 	"github.com/Vractos/dolly/usecases/store"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"

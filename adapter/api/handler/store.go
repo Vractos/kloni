@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/Vractos/dolly/infrastructure/api/presenter"
+	"github.com/Vractos/dolly/adapter/api/presenter"
 	"github.com/Vractos/dolly/usecases/store"
 	"github.com/go-chi/chi/v5"
 )
