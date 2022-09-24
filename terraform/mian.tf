@@ -15,3 +15,10 @@ module "network" {
   source = "./modules/networking"
   environment = var.environment
 }
+
+module "queue" {
+  source = "./modules/queue"
+  environment = var.environment
+  sqs_queue_name = "orders"
+  sqs_queue_allowed_user = data.aws_iam_user.sdk_user.id
+}
