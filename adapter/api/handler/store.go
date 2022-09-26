@@ -41,8 +41,17 @@ func registerStore(service store.UseCase) http.HandlerFunc {
 	}
 }
 
+func authTest() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		querys := chi.URLParam(r, "*")
+		log.Println(querys)
+		http.Redirect(w, r, "https://www.atrati.com", 301)
+	}
+}
+
 func MakeStoreHandlers(r chi.Router, service store.UseCase) {
 	r.Route("/store", func(r chi.Router) {
 		r.Post("/", registerStore(service))
+		r.Get("/auth/*", authTest())
 	})
 }
