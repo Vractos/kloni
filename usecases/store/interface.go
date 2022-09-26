@@ -21,4 +21,5 @@ type Repository interface {
 
 type UseCase interface {
 	RegisterStore(input RegisterStoreDtoInput) (entity.ID, error)
+	RegisterMeliCredentials(input RegisterMeliCredentialsDtoInput) error
 }

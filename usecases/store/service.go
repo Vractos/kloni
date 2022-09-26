@@ -19,3 +19,7 @@ func (s *StoreService) RegisterStore(input RegisterStoreDtoInput) (entity.ID, er
 	}
 	return s.repo.Create(store)
 }
+
+func (s *StoreService) RegisterMeliCredentials(input RegisterMeliCredentialsDtoInput) error {
+	panic("unimplemented")
+}

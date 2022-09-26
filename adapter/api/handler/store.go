@@ -41,17 +41,31 @@ func registerStore(service store.UseCase) http.HandlerFunc {
 	}
 }
 
-func authTest() http.HandlerFunc {
+func registerMeliCredentials(service store.UseCase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		querys := chi.URLParam(r, "*")
-		log.Println(querys)
-		http.Redirect(w, r, "https://www.atrati.com", 301)
+		erroMessage := "Error to get credentials"
+		input := &store.RegisterMeliCredentialsDtoInput{}
+		err := json.NewDecoder(r.Body).Decode(input)
+		if err != nil {
+			log.Println(err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(erroMessage))
+		}
+
+		err = service.RegisterMeliCredentials(*input)
+		if err != nil {
+			log.Println(err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(erroMessage))
+		}
+
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func MakeStoreHandlers(r chi.Router, service store.UseCase) {
 	r.Route("/store", func(r chi.Router) {
 		r.Post("/", registerStore(service))
-		r.Get("/auth/*", authTest())
+		r.Post("/meli-credentials", registerMeliCredentials(service))
 	})
 }
