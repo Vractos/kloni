@@ -1,0 +1,10 @@
+CREATE DATABASE dolly;
+
+\c dolly
+
+CREATE TABLE IF NOT EXISTS store(
+  id UUID NOT NULL PRIMARY KEY,
+  name VARCHAR(80) NOT NULL,
+  email VARCHAR(80) NOT NULL,
+  UNIQUE (email)
+);
