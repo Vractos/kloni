@@ -5,7 +5,9 @@ import (
 	"log"
 	"net/http"
 
+	mdw "github.com/Vractos/dolly/adapter/api/middleware"
 	"github.com/Vractos/dolly/adapter/api/presenter"
+	"github.com/Vractos/dolly/pkg/contexttools"
 	"github.com/Vractos/dolly/usecases/store"
 	"github.com/go-chi/chi/v5"
 )
@@ -51,7 +53,15 @@ func registerMeliCredentials(service store.UseCase) http.HandlerFunc {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(erroMessage))
 		}
-
+		storeId, err := contexttools.RetrieveStoreIDFromCtx(r.Context())
+		if err != nil {
+			log.Println(err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(erroMessage))
+		} else if storeId != input.Store {
+			w.WriteHeader(http.StatusForbidden)
+			w.Write([]byte("Invalid Store"))
+		}
 		err = service.RegisterMeliCredentials(*input)
 		if err != nil {
 			log.Println(err.Error())
@@ -66,6 +76,8 @@ func registerMeliCredentials(service store.UseCase) http.HandlerFunc {
 func MakeStoreHandlers(r chi.Router, service store.UseCase) {
 	r.Route("/store", func(r chi.Router) {
 		r.Post("/", registerStore(service))
-		r.Post("/meli-credentials", registerMeliCredentials(service))
+		// That isn't the best approach to passing an auth middleware to only one route inside the route maker.
+		// TODO: Improve how this middleware is passed
+		r.With(mdw.EnsureValidToken()).With(mdw.AddStoreIDToCtx).Post("/meli-credentials", registerMeliCredentials(service))
 	})
 }

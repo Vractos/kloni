@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/Vractos/dolly/adapter/api/handler"
+	mdw "github.com/Vractos/dolly/adapter/api/middleware"
 	"github.com/Vractos/dolly/adapter/repository"
 	"github.com/Vractos/dolly/usecases/store"
 	"github.com/go-chi/chi/v5"
@@ -36,7 +37,17 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 
-	handler.MakeStoreHandlers(r, storeService)
+	// Public Routes
+	r.Group(func(r chi.Router) {
+		// "/store"
+		handler.MakeStoreHandlers(r, storeService)
+	})
+
+	// Private Routes
+	r.Group(func(r chi.Router) {
+		r.Use(mdw.EnsureValidToken())
+		r.Use(mdw.AddStoreIDToCtx)
+	})
 
 	r.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

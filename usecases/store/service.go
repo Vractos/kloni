@@ -21,5 +21,5 @@ func (s *StoreService) RegisterStore(input RegisterStoreDtoInput) (entity.ID, er
 }
 
 func (s *StoreService) RegisterMeliCredentials(input RegisterMeliCredentialsDtoInput) error {
-	panic("unimplemented")
+	s.repo.Update()
 }
