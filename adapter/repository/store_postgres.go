@@ -41,5 +41,8 @@ func (r *StorePostgreSQL) Delete(id uuid.UUID) error {
 
 // Update implements store.Repository
 func (r *StorePostgreSQL) Update(e *entity.Store) error {
-	panic("unimplemented")
+  _, err := r.db.Exec(context.Background()`
+  INSERT INTO mercadolivre_credentials(owner_id, access_token, expires_in, user_id, refresh_token)
+  VALUES($1,$2,$3,$4,$5)
+  `, )
 }

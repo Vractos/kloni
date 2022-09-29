@@ -6,9 +6,7 @@ type Store struct {
 	Name            string
 	MeliCredentials struct {
 		AccessToken  string
-		TokenType    string
 		ExpiresIn    int
-		Scope        string
 		UserID       int
 		RefreshToken string
 	}
