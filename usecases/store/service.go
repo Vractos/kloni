@@ -6,10 +6,11 @@ import (
 
 type StoreService struct {
 	repo Repository
+	meli MercadoLivre
 }
 
-func NewStoreService(repository Repository) *StoreService {
-	return &StoreService{repo: repository}
+func NewStoreService(repository Repository, mercadolivre MercadoLivre) *StoreService {
+	return &StoreService{repo: repository, meli: mercadolivre}
 }
 
 func (s *StoreService) RegisterStore(input RegisterStoreDtoInput) (entity.ID, error) {
@@ -21,5 +22,12 @@ func (s *StoreService) RegisterStore(input RegisterStoreDtoInput) (entity.ID, er
 }
 
 func (s *StoreService) RegisterMeliCredentials(input RegisterMeliCredentialsDtoInput) error {
-	s.repo.Update()
+	credentials, err := s.meli.RegisterCredential(input.Code)
+	if err != nil {
+		return err
+	}
+	if err := s.repo.RegisterMeliCredential(input.Store, credentials); err != nil {
+		return err
+	}
+	return nil
 }

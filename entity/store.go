@@ -1,15 +1,9 @@
 package entity
 
 type Store struct {
-	ID              ID
-	Email           string
-	Name            string
-	MeliCredentials struct {
-		AccessToken  string
-		ExpiresIn    int
-		UserID       int
-		RefreshToken string
-	}
+	ID    ID
+	Email string
+	Name  string
 }
 
 func NewStore(email, name string) (*Store, error) {

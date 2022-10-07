@@ -58,7 +58,7 @@ func registerMeliCredentials(service store.UseCase) http.HandlerFunc {
 			log.Println(err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(erroMessage))
-		} else if storeId != input.Store {
+		} else if storeId != input.Store.String() {
 			w.WriteHeader(http.StatusForbidden)
 			w.Write([]byte("Invalid Store"))
 		}
