@@ -9,6 +9,7 @@ import (
 
 	"github.com/Vractos/dolly/adapter/api/handler"
 	mdw "github.com/Vractos/dolly/adapter/api/middleware"
+	"github.com/Vractos/dolly/adapter/mercadolivre"
 	"github.com/Vractos/dolly/adapter/repository"
 	"github.com/Vractos/dolly/usecases/store"
 	"github.com/go-chi/chi/v5"
@@ -30,8 +31,9 @@ func main() {
 	}
 	defer conn.Close(context.Background())
 
+	meliStore := mercadolivre.NewMercadoLivreStore(os.Getenv("MELI_APP_ID"), os.Getenv("MELI_SECRET_KEY"), os.Getenv("MELI_REDIRECT_URL"), os.Getenv("MELI_ENDPOINT"))
 	storeRepo := repository.NewStorePostgreSQL(conn)
-	storeService := store.NewStoreService(storeRepo)
+	storeService := store.NewStoreService(storeRepo, meliStore)
 
 	// TODO: Make our own router from scratch, based in Radix Tree
 	r := chi.NewRouter()

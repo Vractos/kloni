@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/Vractos/dolly/entity"
+	"github.com/Vractos/dolly/usecases/store"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4"
 )
@@ -41,10 +42,15 @@ func (r *StorePostgreSQL) Delete(id uuid.UUID) error {
 
 // Update implements store.Repository
 func (r *StorePostgreSQL) Update(e *entity.Store) error {
+	panic("unimplemented")
+}
+
+// RegisterMeliCredential implements store.Repository
+func (r *StorePostgreSQL) RegisterMeliCredential(id uuid.UUID, c *store.MeliCredential) error {
 	_, err := r.db.Exec(context.Background(), `
-  INSERT INTO mercadolivre_credentials(owner_id, access_token, expires_in, user_id, refresh_token)
-  VALUES($1,$2,$3,$4,$5)
-  `)
+  INSERT INTO mercadolivre_credentials(owner_id, access_token, expires_in, user_id, refresh_token, updated_at)
+  VALUES($1,$2,$3,$4,$5,$6)
+  `, id, c.AccessToken, c.ExpiresIn, c.UserID, c.RefreshToken, c.UpdatedAt)
 	if err != nil {
 		return err
 	}

@@ -57,7 +57,7 @@ type MeliCredential struct {
 	ExpiresIn    int
 	UserID       int
 	RefreshToken string
-	UpdateAt     time.Time
+	UpdatedAt    time.Time
 }
 
 /*
@@ -74,6 +74,7 @@ type MeliReader interface {
 // Mercado Livre writer interface
 type MeliWriter interface {
 	RegisterCredential(code string) (*MeliCredential, error)
+	RefreshCredentials(refreshToken string) (*MeliCredential, error)
 }
 
 type MercadoLivre interface {
