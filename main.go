@@ -12,8 +12,8 @@ import (
 	"github.com/Vractos/dolly/adapter/mercadolivre"
 	"github.com/Vractos/dolly/adapter/repository"
 	"github.com/Vractos/dolly/usecases/store"
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v4"
@@ -25,7 +25,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error loading .env file: %v", err)
 	}
+	// AWS SDK
 	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		log.Panic("Failed to load config: " + err.Error())
+	}
+	/// SQS
+	sqs := sqs.NewFromConfig(cfg)
+	// PostgreSQL
 	dataSourceName := fmt.Sprintf("postgresql://%s:%s@%s:5432/%s", os.Getenv("POSTGRES_USER"), os.Getenv("POSTGRES_PASSWORD"), os.Getenv("POSTGRES_HOST"), os.Getenv("POSTGRES_DB_NAME"))
 	conn, err := pgx.Connect(context.Background(), dataSourceName)
 	if err != nil {
@@ -34,8 +41,11 @@ func main() {
 	}
 	defer conn.Close(context.Background())
 
+	// Mercado Livre
 	meliStore := mercadolivre.NewMercadoLivreStore(os.Getenv("MELI_APP_ID"), os.Getenv("MELI_SECRET_KEY"), os.Getenv("MELI_REDIRECT_URL"), os.Getenv("MELI_ENDPOINT"))
+	// Repositories
 	storeRepo := repository.NewStorePostgreSQL(conn)
+	// Services
 	storeService := store.NewStoreService(storeRepo, meliStore)
 
 	// TODO: Make our own router from scratch, based in Radix Tree
