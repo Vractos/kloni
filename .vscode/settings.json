@@ -10,5 +10,6 @@
       "username": "admin",
       "password": "user123"
     }
-  ]
+  ],
+  "dotenv.enableAutocloaking": false
 }

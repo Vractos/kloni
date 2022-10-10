@@ -18,3 +18,7 @@
 .env
 
 .vscode/settings.json
+.env*
+.flaskenv*
+!.env.project
+!.env.vault.tpl
