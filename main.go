@@ -12,6 +12,8 @@ import (
 	"github.com/Vractos/dolly/adapter/mercadolivre"
 	"github.com/Vractos/dolly/adapter/repository"
 	"github.com/Vractos/dolly/usecases/store"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v4"
@@ -23,6 +25,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error loading .env file: %v", err)
 	}
+	cfg, err := config.LoadDefaultConfig(context.TODO())
 	dataSourceName := fmt.Sprintf("postgresql://%s:%s@%s:5432/%s", os.Getenv("POSTGRES_USER"), os.Getenv("POSTGRES_PASSWORD"), os.Getenv("POSTGRES_HOST"), os.Getenv("POSTGRES_DB_NAME"))
 	conn, err := pgx.Connect(context.Background(), dataSourceName)
 	if err != nil {
