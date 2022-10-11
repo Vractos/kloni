@@ -21,3 +21,7 @@ MELI_APP_ID=op://Personal/Dolly Dotenv/Mercado Livre/MELI_APP_ID
 MELI_ENDPOINT=op://Personal/Dolly Dotenv/Mercado Livre/MELI_ENDPOINT
 MELI_REDIRECT_URL=op://Personal/Dolly Dotenv/Mercado Livre/MELI_REDIRECT_URL
 MELI_SECRET_KEY=op://Personal/Dolly Dotenv/Mercado Livre/MELI_SECRET_KEY
+
+# AWS
+## Queue
+ORDER_QUEUE_URL=
