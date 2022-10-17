@@ -1,3 +1,12 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html, #root {
+    @apply h-full bg-gray-100;
+  }
+  body {
+    @apply h-full;
+  }
+}

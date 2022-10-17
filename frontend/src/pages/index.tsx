@@ -1,9 +1,18 @@
 import React from 'react'
+import { Route, Routes } from "react-router-dom";
+import AuthGuard from '../components/guards/authGuard';
+import { routePaths } from '../constants/routes';
+import Home from './home';
+import Login from './login';
 
-const Routes = () => {
+const Pages = () => {
   return (
-    <div>Routes</div>
+    <Routes>
+      <Route path={routePaths.LOGIN} element={<Login/>}/>
+      {/* <Route path={routePaths.HOME} element={<AuthGuard component={Home}/>}/> */}
+      <Route path={routePaths.HOME} element={<Home/>}/>
+    </Routes>
   )
 }
 
-export default Routes
+export default Pages

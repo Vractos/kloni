@@ -1,14 +1,17 @@
+import { noLayoutRoutes, routePaths } from './constants/routes'
 import LoginButton from './pages/login'
 import LogoutButton from './pages/logout'
-import Profile from './pages/profile'
+import { BrowserRouterProps } from 'react-router-dom'
+import Pages from './pages'
 
-function App() {
+const App: React.FC<BrowserRouterProps> = () => {
+
+
   return (
     <>
-      
+      <Pages/>
     </>
   )
 }
 
 export default App
- 
