@@ -9,8 +9,7 @@ const Pages = () => {
   return (
     <Routes>
       <Route path={routePaths.LOGIN} element={<Login/>}/>
-      {/* <Route path={routePaths.HOME} element={<AuthGuard component={Home}/>}/> */}
-      <Route path={routePaths.HOME} element={<Home/>}/>
+      <Route path={routePaths.HOME} element={<AuthGuard component={Home}/>}/>
     </Routes>
   )
 }

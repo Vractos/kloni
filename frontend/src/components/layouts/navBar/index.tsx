@@ -13,7 +13,7 @@ function classNames(...classes: string[]) {
 }
 
 const NavBar = () => {
-  const { user, logout } = useAuth0();
+  const { user, logout , } = useAuth0();
 
   return (
     <Disclosure as="nav" className="bg-gray-800">
@@ -45,6 +45,7 @@ const NavBar = () => {
                 <div className="flex space-x-4">
                   {navBarRoutes.map((routeKey) => (
                     <NavLink
+                      key={routeKey}
                       to={routePaths[routeKey]}
                       className={({ isActive }) =>
                       classNames(isActive ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white', 'px-3 py-2 rounded-md text-sm font-medium')
