@@ -1,13 +1,16 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { IAnnouncement } from '../../interfaces/announcement'
 import { formatCurrency } from '../../utils/formatter'
+import Modal from '../modal'
 
 interface ITableProps {
   announcements: IAnnouncement[]
 }
 
 const Table: React.FC<ITableProps> = ({ announcements }) => {
+  const [modalOpen, setModalOpen] = useState(false)
+
   return (
 
     <div className="overflow-x-auto relative rounded-lg">
@@ -60,11 +63,14 @@ const Table: React.FC<ITableProps> = ({ announcements }) => {
               <td className="py-4 px-6 text-center">
                 <button
                   type="button"
-                  className="group relative flex w-10/12 justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                  className="group relative flex w-10/12 justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                  onClick={() => setModalOpen(true)}
+>
                   <span className="absolute inset-y-0 left-0 flex items-center pl-3">
                   </span>
                   Clonar
                 </button>
+                <Modal isOpen={modalOpen} handleClose={setModalOpen}/>
               </td>
             </tr>
           })}
