@@ -1,14 +1,26 @@
-import React from 'react'
+import React, { FormEvent, useState } from 'react'
 import NavBar from '../../components/layouts/navBar'
 import { MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import Table from '../../components/table';
+import { IAnnouncement } from '../../interfaces/announcement';
+import api from '../../api';
 
 function Home() {
-  const handleSubmit = event => {
-    event.preventDefault();
+  const [announcements, setAnnouncements] = useState<IAnnouncement[]>([])
+  const [searchBarValue, setSearchBarValue] = useState("")
+  const [emptyResultText, setEmptyResultText] = useState("Busque por anúncios através do SKU")
 
-    console.log('form submitted ✅');
-  };
+
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    api.announcement.getAnnouncements(searchBarValue)
+      .then(v => setAnnouncements(v))
+      .catch(_ => {
+        setEmptyResultText("Não há anúncios com esse SKU")
+        setAnnouncements([])
+      }
+      )
+  }
 
   return (
     <div className="min-h-full">
@@ -22,8 +34,8 @@ function Home() {
               <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none">
                 <MagnifyingGlassIcon className='h-5 w-5 text-indigo-500 group-hover:text-indigo-400' />
               </div>
-              <input type="search" id="search" className="outline-none block p-4 pl-10 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 " placeholder="SKU" required />
-              <button type="submit" className="text-white absolute right-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2">Buscar</button>
+              <input value={searchBarValue} type="search" id="search" className="outline-none block p-4 pl-10 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 " placeholder="SKU" onChange={e => setSearchBarValue(e.target.value)} required />
+              <button type="submit" onSubmit={e => handleSubmit(e)} className="text-white absolute right-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2">Buscar</button>
             </div>
           </form>
         </div>
@@ -31,7 +43,15 @@ function Home() {
       <main>
         <div className="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
           <div className="px-4 py-6 sm:px-0 ">
-          <Table products={}/>
+            {announcements.length ?
+              <Table announcements={announcements} />
+              :
+              <div className="px-4 py-6 sm:px-0">
+                <p className="mt-5 text-center">
+                  {emptyResultText}
+                </p>
+              </div>
+            }
           </div>
         </div>
       </main>
