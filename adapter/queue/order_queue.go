@@ -62,9 +62,37 @@ func (q *OrderSQSQueue) PostOrderNotification(input order.OrderWebhookDtoInput) 
 	if err != nil {
 		log.Println("Got an error sending the order message:")
 		log.Panicln(err)
-		return nil
+		return err
 	}
 
 	log.Printf("Sent message with ID: %s", *resp.MessageId)
+	return nil
+}
+
+// ReadOrderNotification implements order.Queue
+func (q *OrderSQSQueue) ReadOrderNotification() error {
+	getMsgInput := &sqs.ReceiveMessageInput{
+		MessageAttributeNames: []string{
+			string(types.QueueAttributeNameAll),
+		},
+		QueueUrl:            &q.url,
+		MaxNumberOfMessages: 1,
+	}
+
+	resp, err := q.client.ReceiveMessage(context.TODO(), getMsgInput)
+	if err != nil {
+		log.Println("Got an error receiving the order message")
+		log.Panicln(err)
+		return err
+	}
+
+	if resp.Messages == nil {
+		log.Println("No orders found")
+		return nil
+	} else {
+		log.Println(resp.Messages[0].MessageAttributes["ResourcePath"].StringValue)
+
+	}
+
 	return nil
 }

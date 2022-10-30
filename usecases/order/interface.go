@@ -17,6 +17,11 @@ type QueueProducer interface {
 	PostOrderNotification(input OrderWebhookDtoInput) error
 }
 
+type QueueConsumer interface {
+	ReadOrderNotification() error
+}
+
 type Queue interface {
 	QueueProducer
+	QueueConsumer
 }
