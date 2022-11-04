@@ -85,7 +85,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, handleClose }) => {
                         <div className='flex mt-3'>
                           <div className="w-full sm:max-w-xs">
                             <label htmlFor="title" className="sr-only">
-                              Email
+                              Título
                             </label>
                             <input
                               type="text"
