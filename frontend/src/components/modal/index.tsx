@@ -1,6 +1,6 @@
 import React, { FormEvent, Fragment, useRef, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
-import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon } from '@heroicons/react/24/outline'
 
 interface ModalProps {
   isOpen: boolean;
@@ -16,9 +16,11 @@ const Modal: React.FC<ModalProps> = ({ isOpen, handleClose }) => {
   // const cancelButtonRef = useRef(null)
   const [inputFields, setInputField] = useState<IInputs[]>([{ title: '' }])
 
+  const cancelButtonRef = useRef(null)
+
   function addInput(e: FormEvent) {
     e.preventDefault();
-    let newField = {title: ''}
+    let newField = { title: '' }
 
     setInputField([...inputFields, newField])
   }
@@ -32,7 +34,9 @@ const Modal: React.FC<ModalProps> = ({ isOpen, handleClose }) => {
 
   function closeModal(): void {
     handleClose(false)
-    setInputField([{title: ''}])
+    setTimeout(() => {
+      setInputField([{ title: '' }])
+    }, 650);
   }
 
   function handleFormChange(index: number, event: React.ChangeEvent<HTMLInputElement>) {
@@ -42,8 +46,8 @@ const Modal: React.FC<ModalProps> = ({ isOpen, handleClose }) => {
   }
 
   return (
-    <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-10" onClose={handleClose}>
+    <Transition.Root appear show={isOpen} as={Fragment}>
+      <Dialog as="div" className="relative z-10" initialFocus={cancelButtonRef} onClose={() => closeModal()}>
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -74,22 +78,41 @@ const Modal: React.FC<ModalProps> = ({ isOpen, handleClose }) => {
                 >
                   Clones
                 </Dialog.Title>
-                <div className="mt-2">
-                  <form action="#" method='POST'>
+                <div className="">
+                  <form action="#" className='mt-5 sm:flex-col sm:items-center' method='POST'>
                     {inputFields.map((input, index) => {
                       return (
-                        <div key={index} className="relative row-span-6 sm:row-span-3 mt-4" >
-                          <input
-                            type="text"
-                            name="title"
-                            id="title"
-                            placeholder='Insira o título do anúncio'
-                            value={input.title}
-                            onChange={e => handleFormChange(index,e)}
-                            autoComplete="family-name"
-                            className=" outline-none block w-10/12 rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                          />
-                          {inputFields.length > 1 && <button onClick={e => removeInput(e, index)} className="text-white absolute right-2.5 bottom-2 bg-red-600 hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-2 py-1">x</button>}
+                        <div className='flex mt-3'>
+                          <div className="w-full sm:max-w-xs">
+                            <label htmlFor="title" className="sr-only">
+                              Email
+                            </label>
+                            <input
+                              type="text"
+                              name="title"
+                              id="title"
+                              value={input.title}
+                              onChange={e => handleFormChange(index, e)}
+                              className="block w-full rounded-md min-h-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-2"
+                              placeholder="Insira o título do anúncio"
+                            />
+                          </div>
+                          {inputFields.length > 1 ?
+                            <button
+                              onClick={e => removeInput(e, index)}
+                              className="mt-3 inline-flex w-full items-center justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                            >
+                            <XMarkIcon className='h-5 w-4 text-white'/>
+                            </button>
+                            :
+                            <button
+                              onClick={e => removeInput(e, index)}
+                              className="mt-3 inline-flex w-full items-center justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm invisible"
+                            >
+                            <XMarkIcon className='h-5 w-4 text-white'/>
+                            </button>
+                            
+                          }
                         </div>
                       )
                     })}
@@ -108,6 +131,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, handleClose }) => {
                     type="button"
                     className="inline-flex justify-center rounded-md border border-transparent bg-red-100 px-4 py-2 text-sm font-medium text-red-900 hover:bg-red-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 mr-1"
                     onClick={() => closeModal()}
+                    ref={cancelButtonRef}
                   >
                     Cancelar
                   </button>
@@ -123,7 +147,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, handleClose }) => {
           </div>
         </div >
       </Dialog >
-    </Transition >
+    </Transition.Root >
   )
 }
 
