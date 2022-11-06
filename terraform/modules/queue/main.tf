@@ -31,7 +31,7 @@ resource "aws_sqs_queue" "sqs_fifo_queue" {
   # name_prefix                       = "${var.sqs_queue_name}"
   fifo_queue = true
   visibility_timeout_seconds = var.fifo_queue_visibility_timeout
-  receive_wait_time_seconds  = 5
+  receive_wait_time_seconds  = 20
   sqs_managed_sse_enabled = false
 
   redrive_policy = jsonencode({
