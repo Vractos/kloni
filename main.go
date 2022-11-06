@@ -49,26 +49,25 @@ func main() {
 	defer conn.Close(context.Background())
 
 	// Order Queue
-	orderChan := make(chan *types.Message)
-	// msgChannel := make(chan string)
-	orderQueue := queue.NewOrderQueue(client, os.Getenv("ORDER_QUEUE_URL"), orderChan)
+	orderChan := make(chan []types.Message)
+	orderQueue := queue.NewOrderQueue(client, os.Getenv("ORDER_QUEUE_URL"))
 
-	done := make(chan bool)
 	go func() {
-		ticker := time.NewTicker(500 * time.Millisecond)
-		for {
-			select {
-			case <-ticker.C:
-				// msgChannel <- "No orders found"
-				log.Println("Order not found")
-			case <-done:
-				return
-			}
+		ticker := time.Tick(time.Second)
+		for range ticker {
+			orderChan <- orderQueue.ConsumeOrderNotification()
 		}
-		// orderQueue.ConsumeOrderNotification()
 	}()
 
-	// 	log.Println(order.MessageAttributes["ResourcePath"].StringValue)
+	go func() {
+		for msgs := range orderChan {
+			for _, msg := range msgs {
+				log.Println(*msg.MessageAttributes["ResourcePath"].StringValue)
+				log.Println(*msg.MessageId)
+			}
+		}
+	}()
+
 	// Mercado Livre
 	meliStore := mercadolivre.NewMercadoLivreStore(os.Getenv("MELI_APP_ID"), os.Getenv("MELI_SECRET_KEY"), os.Getenv("MELI_REDIRECT_URL"), os.Getenv("MELI_ENDPOINT"))
 	// Repositories

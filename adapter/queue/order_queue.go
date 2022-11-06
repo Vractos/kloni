@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"log"
 	"strconv"
-	"time"
 
 	"github.com/Vractos/dolly/usecases/order"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -14,13 +13,12 @@ import (
 )
 
 type OrderSQSQueue struct {
-	Client    *sqs.Client
-	Url       string
-	OrderChan chan<- *types.Message
+	Client *sqs.Client
+	Url    string
 }
 
-func NewOrderQueue(client *sqs.Client, url string, channel chan<- *types.Message) *OrderSQSQueue {
-	return &OrderSQSQueue{Client: client, Url: url, OrderChan: channel}
+func NewOrderQueue(client *sqs.Client, url string) *OrderSQSQueue {
+	return &OrderSQSQueue{Client: client, Url: url}
 }
 
 // PostOrderNotification implements order.Queue
@@ -72,29 +70,21 @@ func (q *OrderSQSQueue) PostOrderNotification(input order.OrderWebhookDtoInput) 
 }
 
 // ReadOrderNotification implements order.Queue
-func (q *OrderSQSQueue) ConsumeOrderNotification() {
-	// TODO: Implement long polling
-
-	// getMsgInput := &sqs.ReceiveMessageInput{
-	// 	MessageAttributeNames: []string{
-	// 		string(types.QueueAttributeNameAll),
-	// 	},
-	// 	QueueUrl:            &q.Url,
-	// 	MaxNumberOfMessages: 1,
-	// }
-
-	for {
-		select {
-		case <-t:
-			// resp, err := q.Client.ReceiveMessage(context.TODO(), getMsgInput)
-			// if err != nil {
-			// 	log.Println("Got an error receiving the order message")
-			// 	log.Panicln(err)
-			// } else if resp.Messages == nil {
-			log.Println("No orders found")
-			// } else {
-			// 	q.OrderChan <- &resp.Messages[0]
-			// }
-		}
+func (q *OrderSQSQueue) ConsumeOrderNotification() []types.Message {
+	getMsgInput := &sqs.ReceiveMessageInput{
+		MessageAttributeNames: []string{
+			string(types.QueueAttributeNameAll),
+		},
+		QueueUrl:            &q.Url,
+		WaitTimeSeconds:     int32(20),
+		MaxNumberOfMessages: 10,
 	}
+
+	resp, err := q.Client.ReceiveMessage(context.TODO(), getMsgInput)
+	if err != nil {
+		log.Println("Got an error receiving the order message")
+		log.Panicln(err)
+		return nil
+	}
+	return resp.Messages
 }
