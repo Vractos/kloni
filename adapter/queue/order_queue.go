@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/Vractos/dolly/usecases/order"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -13,12 +14,13 @@ import (
 )
 
 type OrderSQSQueue struct {
-	client *sqs.Client
-	url    string
+	Client    *sqs.Client
+	Url       string
+	OrderChan chan<- *types.Message
 }
 
-func NewOrderQueue(client *sqs.Client, url string) *OrderSQSQueue {
-	return &OrderSQSQueue{client: client, url: url}
+func NewOrderQueue(client *sqs.Client, url string, channel chan<- *types.Message) *OrderSQSQueue {
+	return &OrderSQSQueue{Client: client, Url: url, OrderChan: channel}
 }
 
 // PostOrderNotification implements order.Queue
@@ -52,13 +54,13 @@ func (q *OrderSQSQueue) PostOrderNotification(input order.OrderWebhookDtoInput) 
 				StringValue: aws.String(input.Received),
 			},
 		},
-		QueueUrl:               &q.url,
+		QueueUrl:               &q.Url,
 		MessageBody:            aws.String(string(msgBody)),
 		MessageDeduplicationId: aws.String(input.ID),
 		MessageGroupId:         aws.String("order-notification"),
 	}
 
-	resp, err := q.client.SendMessage(context.TODO(), mgsInput)
+	resp, err := q.Client.SendMessage(context.TODO(), mgsInput)
 	if err != nil {
 		log.Println("Got an error sending the order message:")
 		log.Panicln(err)
@@ -70,29 +72,29 @@ func (q *OrderSQSQueue) PostOrderNotification(input order.OrderWebhookDtoInput) 
 }
 
 // ReadOrderNotification implements order.Queue
-func (q *OrderSQSQueue) ReadOrderNotification() error {
-	getMsgInput := &sqs.ReceiveMessageInput{
-		MessageAttributeNames: []string{
-			string(types.QueueAttributeNameAll),
-		},
-		QueueUrl:            &q.url,
-		MaxNumberOfMessages: 1,
+func (q *OrderSQSQueue) ConsumeOrderNotification() {
+	// TODO: Implement long polling
+
+	// getMsgInput := &sqs.ReceiveMessageInput{
+	// 	MessageAttributeNames: []string{
+	// 		string(types.QueueAttributeNameAll),
+	// 	},
+	// 	QueueUrl:            &q.Url,
+	// 	MaxNumberOfMessages: 1,
+	// }
+
+	for {
+		select {
+		case <-t:
+			// resp, err := q.Client.ReceiveMessage(context.TODO(), getMsgInput)
+			// if err != nil {
+			// 	log.Println("Got an error receiving the order message")
+			// 	log.Panicln(err)
+			// } else if resp.Messages == nil {
+			log.Println("No orders found")
+			// } else {
+			// 	q.OrderChan <- &resp.Messages[0]
+			// }
+		}
 	}
-
-	resp, err := q.client.ReceiveMessage(context.TODO(), getMsgInput)
-	if err != nil {
-		log.Println("Got an error receiving the order message")
-		log.Panicln(err)
-		return err
-	}
-
-	if resp.Messages == nil {
-		log.Println("No orders found")
-		return nil
-	} else {
-		log.Println(resp.Messages[0].MessageAttributes["ResourcePath"].StringValue)
-
-	}
-
-	return nil
 }

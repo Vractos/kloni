@@ -12,13 +12,17 @@ type UseCase interface {
 #########################################
 */
 
+// type OrderMessage {
+
+// }
+
 // Queue producer interface
 type QueueProducer interface {
 	PostOrderNotification(input OrderWebhookDtoInput) error
 }
 
 type QueueConsumer interface {
-	ReadOrderNotification() error
+	ConsumeOrderNotification()
 }
 
 type Queue interface {

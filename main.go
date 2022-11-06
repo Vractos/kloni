@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/Vractos/dolly/adapter/api/handler"
 	mdw "github.com/Vractos/dolly/adapter/api/middleware"
@@ -16,6 +17,7 @@ import (
 	"github.com/Vractos/dolly/usecases/store"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v4"
@@ -47,7 +49,26 @@ func main() {
 	defer conn.Close(context.Background())
 
 	// Order Queue
-	orderQueue := queue.NewOrderQueue(client, os.Getenv("ORDER_QUEUE_URL"))
+	orderChan := make(chan *types.Message)
+	// msgChannel := make(chan string)
+	orderQueue := queue.NewOrderQueue(client, os.Getenv("ORDER_QUEUE_URL"), orderChan)
+
+	done := make(chan bool)
+	go func() {
+		ticker := time.NewTicker(500 * time.Millisecond)
+		for {
+			select {
+			case <-ticker.C:
+				// msgChannel <- "No orders found"
+				log.Println("Order not found")
+			case <-done:
+				return
+			}
+		}
+		// orderQueue.ConsumeOrderNotification()
+	}()
+
+	// 	log.Println(order.MessageAttributes["ResourcePath"].StringValue)
 	// Mercado Livre
 	meliStore := mercadolivre.NewMercadoLivreStore(os.Getenv("MELI_APP_ID"), os.Getenv("MELI_SECRET_KEY"), os.Getenv("MELI_REDIRECT_URL"), os.Getenv("MELI_ENDPOINT"))
 	// Repositories
