@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/Vractos/dolly/adapter/api/handler"
 	mdw "github.com/Vractos/dolly/adapter/api/middleware"
@@ -20,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-redis/redis/v8"
 	"github.com/jackc/pgx/v4"
 	"github.com/joho/godotenv"
 )
@@ -48,16 +48,27 @@ func main() {
 	}
 	defer conn.Close(context.Background())
 
+	// Redis
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     os.Getenv("REDIS_HOST") + ":6379",
+		Password: "",
+		DB:       0,
+	})
+
+	pong, err := rdb.Ping(rdb.Context()).Result()
+	log.Println(pong, err)
+
 	// Order Queue
 	orderChan := make(chan []types.Message)
 	orderQueue := queue.NewOrderQueue(client, os.Getenv("ORDER_QUEUE_URL"))
 
-	go func() {
-		ticker := time.Tick(time.Second)
-		for range ticker {
-			orderChan <- orderQueue.ConsumeOrderNotification()
-		}
-	}()
+	// Pull messages from queue
+	// go func() {
+	// 	ticker := time.Tick(time.Minute)
+	// 	for range ticker {
+	// 		orderChan <- orderQueue.ConsumeOrderNotification()
+	// 	}
+	// }()
 
 	go func() {
 		for msgs := range orderChan {

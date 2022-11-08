@@ -16,6 +16,9 @@ POSTGRES_HOST=op://Personal/Dolly Dotenv/PostgreSQL/POSTGRES_HOST
 POSTGRES_PASSWORD=op://Personal/Dolly Dotenv/PostgreSQL/POSTGRES_PASSWORD
 POSTGRES_USER=op://Personal/Dolly Dotenv/PostgreSQL/POSTGRES_USER
 
+# Redis
+REDIS_HOST=op://Personal/Dolly Dotenv/Redis/REDIS_HOST
+
 # Mercado Livre
 MELI_APP_ID=op://Personal/Dolly Dotenv/Mercado Livre/MELI_APP_ID
 MELI_ENDPOINT=op://Personal/Dolly Dotenv/Mercado Livre/MELI_ENDPOINT
