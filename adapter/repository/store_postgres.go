@@ -6,14 +6,14 @@ import (
 	"github.com/Vractos/dolly/entity"
 	"github.com/Vractos/dolly/usecases/store"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type StorePostgreSQL struct {
-	db *pgx.Conn
+	db *pgxpool.Pool
 }
 
-func NewStorePostgreSQL(db *pgx.Conn) *StorePostgreSQL {
+func NewStorePostgreSQL(db *pgxpool.Pool) *StorePostgreSQL {
 	return &StorePostgreSQL{db: db}
 }
 

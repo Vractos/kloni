@@ -20,7 +20,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-redis/redis/v8"
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 )
 
@@ -41,12 +41,12 @@ func main() {
 
 	// PostgreSQL
 	dataSourceName := fmt.Sprintf("postgresql://%s:%s@%s:5432/%s", os.Getenv("POSTGRES_USER"), os.Getenv("POSTGRES_PASSWORD"), os.Getenv("POSTGRES_HOST"), os.Getenv("POSTGRES_DB_NAME"))
-	conn, err := pgx.Connect(context.Background(), dataSourceName)
+	dbpool, err := pgxpool.New(context.Background(), dataSourceName)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Unable to create connection pool: %v\n", err)
 		os.Exit(1)
 	}
-	defer conn.Close(context.Background())
+	defer dbpool.Close()
 
 	// Redis
 	rdb := redis.NewClient(&redis.Options{
@@ -82,7 +82,7 @@ func main() {
 	// Mercado Livre
 	meliStore := mercadolivre.NewMercadoLivreStore(os.Getenv("MELI_APP_ID"), os.Getenv("MELI_SECRET_KEY"), os.Getenv("MELI_REDIRECT_URL"), os.Getenv("MELI_ENDPOINT"))
 	// Repositories
-	storeRepo := repository.NewStorePostgreSQL(conn)
+	storeRepo := repository.NewStorePostgreSQL(dbpool)
 	// Services
 	storeService := store.NewStoreService(storeRepo, meliStore)
 	orderService := order.NewOrderService(orderQueue)
