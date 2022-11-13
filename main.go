@@ -16,7 +16,6 @@ import (
 	"github.com/Vractos/dolly/usecases/store"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
-	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-redis/redis/v8"
@@ -59,7 +58,7 @@ func main() {
 	log.Println(pong, err)
 
 	// Order Queue
-	orderChan := make(chan []types.Message)
+	orderChan := make(chan []order.OrderMessage)
 	orderQueue := queue.NewOrderQueue(client, os.Getenv("ORDER_QUEUE_URL"))
 
 	// Pull messages from queue
@@ -73,8 +72,9 @@ func main() {
 	go func() {
 		for msgs := range orderChan {
 			for _, msg := range msgs {
-				log.Println(*msg.MessageAttributes["ResourcePath"].StringValue)
-				log.Println(*msg.MessageId)
+				log.Println(msg.Attempts)
+				log.Println(msg.OrderId)
+				log.Println(msg.Store)
 			}
 		}
 	}()

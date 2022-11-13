@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"regexp"
 	"strconv"
 
 	"github.com/Vractos/dolly/usecases/order"
@@ -70,7 +71,7 @@ func (q *OrderSQSQueue) PostOrderNotification(input order.OrderWebhookDtoInput) 
 }
 
 // ReadOrderNotification implements order.Queue
-func (q *OrderSQSQueue) ConsumeOrderNotification() []types.Message {
+func (q *OrderSQSQueue) ConsumeOrderNotification() []order.OrderMessage {
 	getMsgInput := &sqs.ReceiveMessageInput{
 		MessageAttributeNames: []string{
 			string(types.QueueAttributeNameAll),
@@ -85,6 +86,16 @@ func (q *OrderSQSQueue) ConsumeOrderNotification() []types.Message {
 		log.Println("Got an error receiving the order message")
 		log.Panicln(err)
 		return nil
+	} else if resp.Messages == nil {
+		return nil
 	}
-	return resp.Messages
+
+	orderMessages := make([]order.OrderMessage, len(resp.Messages))
+	for i, e := range resp.Messages {
+		orderMessages[i].Store = *e.MessageAttributes["Store"].StringValue
+		orderMessages[i].OrderId = regexp.MustCompile(`\w+$`).FindString(*e.MessageAttributes["ResourcePath"].StringValue)
+		orderMessages[i].Attempts, _ = strconv.Atoi(*e.MessageAttributes["Attempts"].StringValue)
+	}
+
+	return orderMessages
 }
