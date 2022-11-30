@@ -5,34 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
-	"github.com/Vractos/dolly/usecases/store"
+	"github.com/Vractos/dolly/usecases/common"
 )
 
-type MercadoLivreStore struct {
-	ClientId     string
-	ClientSecret string
-	RedirectUrl  string
-	Endpoint     string
-	HttpClient   *http.Client
-}
-
-func NewMercadoLivreStore(clientId, clientSecret, redirectUrl, endpoint string) *MercadoLivreStore {
-	return &MercadoLivreStore{
-		ClientId:     clientId,
-		ClientSecret: clientSecret,
-		RedirectUrl:  redirectUrl,
-		Endpoint:     endpoint,
-		HttpClient:   &http.Client{},
-	}
-}
-
-// RegisterCredential implements store.MercadoLivre
-func (m *MercadoLivreStore) RegisterCredential(code string) (*store.MeliCredential, error) {
+// RegisterCredential implements common.MercadoLivre
+func (m *MercadoLivre) RegisterCredential(code string) (*common.MeliCredential, error) {
 	url := fmt.Sprintf("%s/oauth/token", m.Endpoint)
 	bodyRequest := map[string]interface{}{
 		"client_id":     m.ClientId,
@@ -60,13 +43,15 @@ func (m *MercadoLivreStore) RegisterCredential(code string) (*store.MeliCredenti
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
-	} else if resp.StatusCode != 200 {
-		b, _ := ioutil.ReadAll(resp.Body)
-		log.Println(string(b))
-		return nil, errors.New(string(b))
 	}
 
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		b, _ := io.ReadAll(resp.Body)
+		log.Println("Error to register credentials: " + string(b))
+		return nil, errors.New(string(b))
+	}
 
 	credentials := &Credentials{}
 	if err := json.NewDecoder(resp.Body).Decode(credentials); err != nil {
@@ -74,16 +59,16 @@ func (m *MercadoLivreStore) RegisterCredential(code string) (*store.MeliCredenti
 		return nil, err
 	}
 
-	return &store.MeliCredential{
+	return &common.MeliCredential{
 		AccessToken:  credentials.AccessToken,
-		UserID:       credentials.UserID,
+		UserID:       strconv.Itoa(credentials.UserID),
 		RefreshToken: credentials.RefreshToken,
 		ExpiresIn:    credentials.ExpiresIn,
 		UpdatedAt:    time.Now().UTC(),
 	}, nil
 }
 
-// RefreshCredentials implements store.MercadoLivre
-func (*MercadoLivreStore) RefreshCredentials(refreshToken string) (*store.MeliCredential, error) {
+// RefreshCredentials implements common.MercadoLivre
+func (*MercadoLivre) RefreshCredentials(refreshToken string) (*common.MeliCredential, error) {
 	panic("unimplemented")
 }
