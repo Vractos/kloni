@@ -14,3 +14,7 @@ func NewStore(email, name string) (*Store, error) {
 	}
 	return &store, nil
 }
+
+func NewStoreWithKnownId(id ID, name, email string) (*Store, error) {
+	panic("unimplemented")
+}
