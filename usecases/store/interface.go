@@ -1,15 +1,23 @@
 package store
 
 import (
-	"time"
-
 	"github.com/Vractos/dolly/entity"
+	"github.com/Vractos/dolly/usecases/common"
 )
+
+type Credentials struct {
+	StoreID         entity.ID
+	MeliAccessToken string
+	MeliUserID      string
+}
 
 // UseCase interface
 type UseCase interface {
 	RegisterStore(input RegisterStoreDtoInput) (entity.ID, error)
 	RegisterMeliCredentials(input RegisterMeliCredentialsDtoInput) error
+	RetrieveMeliCredentialsFromStoreID(id entity.ID) (*Credentials, error)
+	RetrieveMeliCredentialsFromMeliUserID(id string) (*Credentials, error)
+	RefreshMeliCredential(storeId entity.ID, refreshToken string) (*Credentials, error)
 }
 
 /*
@@ -23,12 +31,15 @@ type UseCase interface {
 //Repository reader interface
 type RepoReader interface {
 	Get(id string) (*entity.Store, error)
+	RetrieveMeliCredentialsFromStoreID(id entity.ID) (*common.MeliCredential, error)
+	RetrieveMeliCredentialsFromMeliUserID(id string) (*entity.ID, *common.MeliCredential, error)
 }
 
 //Repository writer interface
 type RepoWriter interface {
 	Create(e *entity.Store) (entity.ID, error)
-	RegisterMeliCredential(id entity.ID, c *MeliCredential) error
+	RegisterMeliCredential(id entity.ID, c *common.MeliCredential) error
+	UpdateMeliCredentials(id entity.ID, c *common.MeliCredential) error
 	Update(e *entity.Store) error
 	Delete(id entity.ID) error
 }
@@ -37,47 +48,4 @@ type RepoWriter interface {
 type Repository interface {
 	RepoReader
 	RepoWriter
-}
-
-/*
-#########################################
-#########################################
---------------Mercado Livre--------------
-#########################################
-#########################################
-*/
-
-/*
-###################################
----------------Models-------------
-###################################
-*/
-type MeliCredential struct {
-	AccessToken  string
-	ExpiresIn    int
-	UserID       int
-	RefreshToken string
-	UpdatedAt    time.Time
-}
-
-/*
-###################################
--------------Interfaces------------
-###################################
-*/
-
-// Mercado Livre reader interface
-type MeliReader interface {
-	// Implement
-}
-
-// Mercado Livre writer interface
-type MeliWriter interface {
-	RegisterCredential(code string) (*MeliCredential, error)
-	RefreshCredentials(refreshToken string) (*MeliCredential, error)
-}
-
-type MercadoLivre interface {
-	MeliReader
-	MeliWriter
 }
