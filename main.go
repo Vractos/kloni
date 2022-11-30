@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-playground/validator/v10"
 	"github.com/go-redis/redis/v8"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
@@ -28,6 +29,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error loading .env file: %v", err)
 	}
+
+	validate := validator.New()
 
 	// AWS SDK
 	cfg, err := config.LoadDefaultConfig(context.TODO())
@@ -61,6 +64,14 @@ func main() {
 	orderChan := make(chan []order.OrderMessage)
 	orderQueue := queue.NewOrderQueue(client, os.Getenv("ORDER_QUEUE_URL"))
 
+	// Mercado Livre
+	mercadoLivre := mercadolivre.NewMercadoLivre(os.Getenv("MELI_APP_ID"), os.Getenv("MELI_SECRET_KEY"), os.Getenv("MELI_REDIRECT_URL"), os.Getenv("MELI_ENDPOINT"), validate)
+	// Repositories
+	storeRepo := repository.NewStorePostgreSQL(dbpool)
+	// Services
+	storeService := store.NewStoreService(storeRepo, mercadoLivre)
+	orderService := order.NewOrderService(orderQueue, mercadoLivre, storeService)
+
 	// Pull messages from queue
 	// go func() {
 	// 	ticker := time.Tick(time.Minute)
@@ -72,20 +83,10 @@ func main() {
 	go func() {
 		for msgs := range orderChan {
 			for _, msg := range msgs {
-				log.Println(msg.Attempts)
-				log.Println(msg.OrderId)
-				log.Println(msg.Store)
+				orderService.ProcessOrder(msg)
 			}
 		}
 	}()
-
-	// Mercado Livre
-	meliStore := mercadolivre.NewMercadoLivreStore(os.Getenv("MELI_APP_ID"), os.Getenv("MELI_SECRET_KEY"), os.Getenv("MELI_REDIRECT_URL"), os.Getenv("MELI_ENDPOINT"))
-	// Repositories
-	storeRepo := repository.NewStorePostgreSQL(dbpool)
-	// Services
-	storeService := store.NewStoreService(storeRepo, meliStore)
-	orderService := order.NewOrderService(orderQueue)
 
 	// TODO: Make our own router from scratch, based in Radix Tree
 	r := chi.NewRouter()
