@@ -2,6 +2,7 @@ package order
 
 type UseCase interface {
 	ProcessWebhook(input OrderWebhookDtoInput) error
+	ProcessOrder(order OrderMessage) error
 }
 
 /*
