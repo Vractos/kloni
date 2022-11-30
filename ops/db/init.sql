@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS mercadolivre_credentials(
   owner_id UUID REFERENCES store(id) NOT NULL,
   access_token VARCHAR(80) NOT NULL,
   expires_in  INTEGER NOT NULL,
-  user_id INTEGER NOT NULL,
+  user_id VARCHAR(80) NOT NULL,
   refresh_token VARCHAR(80) NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL,
   PRIMARY KEY (owner_id)
