@@ -6,12 +6,15 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/Vractos/dolly/adapter/api/handler"
 	mdw "github.com/Vractos/dolly/adapter/api/middleware"
+	"github.com/Vractos/dolly/adapter/cache"
 	"github.com/Vractos/dolly/adapter/mercadolivre"
 	"github.com/Vractos/dolly/adapter/queue"
 	"github.com/Vractos/dolly/adapter/repository"
+	"github.com/Vractos/dolly/usecases/announcement"
 	"github.com/Vractos/dolly/usecases/order"
 	"github.com/Vractos/dolly/usecases/store"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -56,7 +59,6 @@ func main() {
 		Password: "",
 		DB:       0,
 	})
-
 	pong, err := rdb.Ping(rdb.Context()).Result()
 	log.Println(pong, err)
 
@@ -68,17 +70,29 @@ func main() {
 	mercadoLivre := mercadolivre.NewMercadoLivre(os.Getenv("MELI_APP_ID"), os.Getenv("MELI_SECRET_KEY"), os.Getenv("MELI_REDIRECT_URL"), os.Getenv("MELI_ENDPOINT"), validate)
 	// Repositories
 	storeRepo := repository.NewStorePostgreSQL(dbpool)
+	orderRepo := repository.NewOrderPostgreSQL(dbpool)
+	// Caches
+	orderCache := cache.NewOrderRedis(rdb)
 	// Services
 	storeService := store.NewStoreService(storeRepo, mercadoLivre)
-	orderService := order.NewOrderService(orderQueue, mercadoLivre, storeService)
+	announceService := announcement.NewAnnouncementService(mercadoLivre)
+	orderService := order.NewOrderService(
+		orderQueue,
+		mercadoLivre,
+		storeService,
+		announceService,
+		orderRepo,
+		orderCache,
+	)
 
 	// Pull messages from queue
-	// go func() {
-	// 	ticker := time.Tick(time.Minute)
-	// 	for range ticker {
-	// 		orderChan <- orderQueue.ConsumeOrderNotification()
-	// 	}
-	// }()
+	go func() {
+		ticker := time.Tick(time.Minute)
+		for range ticker {
+			log.Println("Pulling...")
+			orderChan <- orderQueue.ConsumeOrderNotification()
+		}
+	}()
 
 	go func() {
 		for msgs := range orderChan {
