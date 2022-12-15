@@ -1,8 +1,11 @@
 package announcement
 
-import "github.com/Vractos/dolly/entity"
+import (
+	"github.com/Vractos/dolly/usecases/common"
+	"github.com/Vractos/dolly/usecases/store"
+)
 
 type UseCase interface {
-	RetrieveAnnouncements(sku string) ([]entity.Announcement, error)
-	RemoveQuantity(ids []string, quantity int) error
+	RetrieveAnnouncements(sku string, credentials store.Credentials) (*[]common.MeliAnnouncement, error)
+	RemoveQuantity(id string, quantity int, credentials store.Credentials) error
 }
