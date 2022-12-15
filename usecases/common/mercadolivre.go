@@ -48,6 +48,16 @@ type MeliOrder struct {
 	Items       []OrderItem
 }
 
+type MeliAnnouncement struct {
+	ID           string
+	Title        string
+	Quantity     int
+	Price        float64
+	ThumbnailURL string
+	Sku          string
+	Link         string
+}
+
 /*
 ###################################
 ###################################
@@ -71,8 +81,15 @@ type meliReaderOrder interface {
 	FetchOrder(orderId string, accessToken string) (*MeliOrder, error)
 }
 
+type meliReaderAnnouncement interface {
+	GetAnnouncementsIDsViaSKU(sku string, userId string, accessToken string) ([]string, error)
+	// Max 10 IDs
+	GetAnnouncements(ids []string, accessToken string) (*[]MeliAnnouncement, error)
+}
+
 type MercadoLivre interface {
 	meliReaderStore
 	meliReaderOrder
 	meliWriterStore
+	meliReaderAnnouncement
 }
