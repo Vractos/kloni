@@ -1,6 +1,8 @@
 package entity
 
-import "time"
+import (
+	"time"
+)
 
 type OrderStatus string
 
@@ -16,6 +18,32 @@ const (
 	Cancelled         OrderStatus = "cancelled"
 	Invalid           OrderStatus = "invalid"
 )
+
+func (s OrderStatus) String() string {
+	switch s {
+	case Unknown:
+		return ""
+	case Confirmed:
+		return "confirmed"
+	case PaymentRequired:
+		return "payment_required"
+	case PaymentInProcess:
+		return "payment_in_process"
+	case PartiallyPaid:
+		return "partially_paid"
+	case Paid:
+		return "paid"
+	case PartiallyRefunded:
+		return "partially_refunded"
+	case PendingCancel:
+		return "pending_cancel"
+	case Cancelled:
+		return "cancelled"
+	case Invalid:
+		return "invalid"
+	}
+	return ""
+}
 
 type OrderItem struct {
 	Title    string
