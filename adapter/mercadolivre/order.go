@@ -15,7 +15,7 @@ import (
 
 // FetchOrder implements common.MercadoLivre
 func (m *MercadoLivre) FetchOrder(orderId string, accessToken string) (*common.MeliOrder, error) {
-	url := fmt.Sprintf("%s/oauth/token", m.Endpoint)
+	url := fmt.Sprintf("%s/orders/%s", m.Endpoint, orderId)
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -42,7 +42,7 @@ func (m *MercadoLivre) FetchOrder(orderId string, accessToken string) (*common.M
 
 	order := &Order{}
 	if err := json.NewDecoder(resp.Body).Decode(order); err != nil {
-		log.Fatalln(err.Error())
+		log.Println(err.Error())
 		return nil, err
 	}
 
