@@ -1,5 +1,7 @@
 package mercadolivre
 
+import "time"
+
 type Credentials struct {
 	AccessToken  string `json:"access_token"`
 	TokenType    string `json:"token_type"`
@@ -24,11 +26,11 @@ type Order struct {
 	} `json:"order_request,omitempty"`
 	Fulfilled   interface{}   `json:"fulfilled,omitempty"`
 	Mediations  []interface{} `json:"mediations,omitempty"`
-	TotalAmount int           `json:"total_amount,omitempty"`
-	PaidAmount  int           `json:"paid_amount,omitempty"`
+	TotalAmount float64       `json:"total_amount,omitempty"`
+	PaidAmount  float64       `json:"paid_amount,omitempty"`
 	Coupon      struct {
 		ID     interface{} `json:"id,omitempty"`
-		Amount int         `json:"amount,omitempty"`
+		Amount float64     `json:"amount,omitempty"`
 	} `json:"coupon,omitempty"`
 	ExpirationDate string `json:"expiration_date,omitempty"`
 	OrderItems     []struct {
@@ -56,11 +58,11 @@ type Order struct {
 			Measure string `json:"measure,omitempty"`
 		} `json:"requested_quantity,omitempty"`
 		PickedQuantity    interface{} `json:"picked_quantity,omitempty"`
-		UnitPrice         int         `json:"unit_price,omitempty"`
-		FullUnitPrice     int         `json:"full_unit_price,omitempty"`
+		UnitPrice         float64     `json:"unit_price,omitempty"`
+		FullUnitPrice     float64     `json:"full_unit_price,omitempty"`
 		CurrencyID        string      `json:"currency_id,omitempty"`
 		ManufacturingDays interface{} `json:"manufacturing_days,omitempty"`
-		SaleFee           int         `json:"sale_fee,omitempty"`
+		SaleFee           float64     `json:"sale_fee,omitempty"`
 		ListingTypeID     string      `json:"listing_type_id,omitempty"`
 	} `json:"order_items,omitempty"`
 	CurrencyID string `json:"currency_id,omitempty"`
@@ -90,13 +92,13 @@ type Order struct {
 		Status                    string      `json:"status,omitempty"`
 		StatusCode                interface{} `json:"status_code,omitempty"`
 		StatusDetail              string      `json:"status_detail,omitempty"`
-		TransactionAmount         int         `json:"transaction_amount,omitempty"`
-		TransactionAmountRefunded int         `json:"transaction_amount_refunded,omitempty"`
-		TaxesAmount               int         `json:"taxes_amount,omitempty"`
-		ShippingCost              int         `json:"shipping_cost,omitempty"`
-		CouponAmount              int         `json:"coupon_amount,omitempty"`
-		OverpaidAmount            int         `json:"overpaid_amount,omitempty"`
-		TotalPaidAmount           int         `json:"total_paid_amount,omitempty"`
+		TransactionAmount         float64     `json:"transaction_amount,omitempty"`
+		TransactionAmountRefunded float64     `json:"transaction_amount_refunded,omitempty"`
+		TaxesAmount               float64     `json:"taxes_amount,omitempty"`
+		ShippingCost              float64     `json:"shipping_cost,omitempty"`
+		CouponAmount              float64     `json:"coupon_amount,omitempty"`
+		OverpaidAmount            float64     `json:"overpaid_amount,omitempty"`
+		TotalPaidAmount           float64     `json:"total_paid_amount,omitempty"`
 		InstallmentAmount         interface{} `json:"installment_amount,omitempty"`
 		DeferredPeriod            interface{} `json:"deferred_period,omitempty"`
 		DateApproved              string      `json:"date_approved,omitempty"`
@@ -130,8 +132,169 @@ type Order struct {
 		ID int `json:"id,omitempty"`
 	} `json:"seller,omitempty"`
 	Taxes struct {
-		Amount     interface{} `json:"amount,omitempty"`
+		Amount     float64     `json:"amount,omitempty"`
 		CurrencyID interface{} `json:"currency_id,omitempty"`
 		ID         interface{} `json:"id,omitempty"`
 	} `json:"taxes,omitempty"`
+}
+
+type QueryAnnouncementViaSku struct {
+	SellerID string      `json:"seller_id,omitempty"`
+	Query    interface{} `json:"query,omitempty"`
+	Paging   interface{} `json:"paging,omitempty"`
+	Results  []string    `json:"results,omitempty"`
+	Orders   []struct {
+		ID   string `json:"id,omitempty"`
+		Name string `json:"name,omitempty"`
+	} `json:"orders,omitempty"`
+	AvailableOrders interface{} `json:"available_orders,omitempty"`
+}
+
+type AnnouncementsMultiGet []struct {
+	Code int `json:"code,omitempty"`
+	Body struct {
+		ID                string      `json:"id,omitempty"`
+		Message           string      `json:"message,omitempty"`
+		Error             string      `json:"error,omitempty"`
+		SiteID            string      `json:"site_id,omitempty"`
+		Title             string      `json:"title,omitempty"`
+		Subtitle          interface{} `json:"subtitle,omitempty"`
+		SellerID          int         `json:"seller_id,omitempty"`
+		CategoryID        string      `json:"category_id,omitempty"`
+		OfficialStoreID   interface{} `json:"official_store_id,omitempty"`
+		Price             float64     `json:"price,omitempty"`
+		BasePrice         float64     `json:"base_price,omitempty"`
+		OriginalPrice     float64     `json:"original_price,omitempty"`
+		InventoryID       interface{} `json:"inventory_id,omitempty"`
+		CurrencyID        string      `json:"currency_id,omitempty"`
+		InitialQuantity   int         `json:"initial_quantity,omitempty"`
+		AvailableQuantity int         `json:"available_quantity,omitempty"`
+		SoldQuantity      int         `json:"sold_quantity,omitempty"`
+		SaleTerms         []struct {
+			ID          string      `json:"id,omitempty"`
+			Name        string      `json:"name,omitempty"`
+			ValueID     interface{} `json:"value_id,omitempty"`
+			ValueName   string      `json:"value_name,omitempty"`
+			ValueStruct struct {
+				Number int    `json:"number,omitempty"`
+				Unit   string `json:"unit,omitempty"`
+			} `json:"value_struct,omitempty"`
+			Values []struct {
+				ID     interface{} `json:"id,omitempty"`
+				Name   string      `json:"name,omitempty"`
+				Struct struct {
+					Number int    `json:"number,omitempty"`
+					Unit   string `json:"unit,omitempty"`
+				} `json:"struct,omitempty"`
+			} `json:"values,omitempty"`
+			ValueType string `json:"value_type,omitempty"`
+		} `json:"sale_terms,omitempty"`
+		BuyingMode      string    `json:"buying_mode,omitempty"`
+		ListingTypeID   string    `json:"listing_type_id,omitempty"`
+		StartTime       time.Time `json:"start_time,omitempty"`
+		StopTime        time.Time `json:"stop_time,omitempty"`
+		EndTime         time.Time `json:"end_time,omitempty"`
+		ExpirationTime  time.Time `json:"expiration_time,omitempty"`
+		Condition       string    `json:"condition,omitempty"`
+		Permalink       string    `json:"permalink,omitempty"`
+		ThumbnailID     string    `json:"thumbnail_id,omitempty"`
+		Thumbnail       string    `json:"thumbnail,omitempty"`
+		SecureThumbnail string    `json:"secure_thumbnail,omitempty"`
+		Pictures        []struct {
+			ID        string `json:"id,omitempty"`
+			URL       string `json:"url,omitempty"`
+			SecureURL string `json:"secure_url,omitempty"`
+			Size      string `json:"size,omitempty"`
+			MaxSize   string `json:"max_size,omitempty"`
+			Quality   string `json:"quality,omitempty"`
+		} `json:"pictures,omitempty"`
+		VideoID                      interface{}   `json:"video_id,omitempty"`
+		Descriptions                 []interface{} `json:"descriptions,omitempty"`
+		AcceptsMercadopago           bool          `json:"accepts_mercadopago,omitempty"`
+		NonMercadoPagoPaymentMethods []interface{} `json:"non_mercado_pago_payment_methods,omitempty"`
+		Shipping                     struct {
+			Mode         string        `json:"mode,omitempty"`
+			Methods      []interface{} `json:"methods,omitempty"`
+			Tags         []string      `json:"tags,omitempty"`
+			Dimensions   interface{}   `json:"dimensions,omitempty"`
+			LocalPickUp  bool          `json:"local_pick_up,omitempty"`
+			FreeShipping bool          `json:"free_shipping,omitempty"`
+			LogisticType string        `json:"logistic_type,omitempty"`
+			StorePickUp  bool          `json:"store_pick_up,omitempty"`
+		} `json:"shipping,omitempty"`
+		InternationalDeliveryMode string `json:"international_delivery_mode,omitempty"`
+		SellerAddress             struct {
+			Comment     string `json:"comment,omitempty"`
+			AddressLine string `json:"address_line,omitempty"`
+			ZipCode     string `json:"zip_code,omitempty"`
+			City        struct {
+				ID   string `json:"id,omitempty"`
+				Name string `json:"name,omitempty"`
+			} `json:"city,omitempty"`
+			State struct {
+				ID   string `json:"id,omitempty"`
+				Name string `json:"name,omitempty"`
+			} `json:"state,omitempty"`
+			Country struct {
+				ID   string `json:"id,omitempty"`
+				Name string `json:"name,omitempty"`
+			} `json:"country,omitempty"`
+			SearchLocation struct {
+				City struct {
+					ID   string `json:"id,omitempty"`
+					Name string `json:"name,omitempty"`
+				} `json:"city,omitempty"`
+				State struct {
+					ID   string `json:"id,omitempty"`
+					Name string `json:"name,omitempty"`
+				} `json:"state,omitempty"`
+			} `json:"search_location,omitempty"`
+			Latitude  float64 `json:"latitude,omitempty"`
+			Longitude float64 `json:"longitude,omitempty"`
+			ID        int     `json:"id,omitempty"`
+		} `json:"seller_address,omitempty"`
+		SellerContact interface{} `json:"seller_contact,omitempty"`
+		Location      struct {
+		} `json:"location,omitempty"`
+		Geolocation struct {
+			Latitude  float64 `json:"latitude,omitempty"`
+			Longitude float64 `json:"longitude,omitempty"`
+		} `json:"geolocation,omitempty"`
+		CoverageAreas []interface{} `json:"coverage_areas,omitempty"`
+		Attributes    []struct {
+			ID          string      `json:"id,omitempty"`
+			Name        string      `json:"name,omitempty"`
+			ValueID     string      `json:"value_id,omitempty"`
+			ValueName   string      `json:"value_name,omitempty"`
+			ValueStruct interface{} `json:"value_struct,omitempty"`
+			Values      []struct {
+				ID     string      `json:"id,omitempty"`
+				Name   string      `json:"name,omitempty"`
+				Struct interface{} `json:"struct,omitempty"`
+			} `json:"values,omitempty"`
+			AttributeGroupID   string `json:"attribute_group_id,omitempty"`
+			AttributeGroupName string `json:"attribute_group_name,omitempty"`
+			ValueType          string `json:"value_type,omitempty"`
+		} `json:"attributes,omitempty"`
+		Warnings            []interface{} `json:"warnings,omitempty"`
+		ListingSource       string        `json:"listing_source,omitempty"`
+		Variations          []interface{} `json:"variations,omitempty"`
+		Status              string        `json:"status,omitempty"`
+		SubStatus           []interface{} `json:"sub_status,omitempty"`
+		Tags                []string      `json:"tags,omitempty"`
+		Warranty            string        `json:"warranty,omitempty"`
+		CatalogProductID    interface{}   `json:"catalog_product_id,omitempty"`
+		DomainID            string        `json:"domain_id,omitempty"`
+		SellerCustomField   interface{}   `json:"seller_custom_field,omitempty"`
+		ParentItemID        interface{}   `json:"parent_item_id,omitempty"`
+		DifferentialPricing interface{}   `json:"differential_pricing,omitempty"`
+		DealIds             []interface{} `json:"deal_ids,omitempty"`
+		AutomaticRelist     bool          `json:"automatic_relist,omitempty"`
+		DateCreated         time.Time     `json:"date_created,omitempty"`
+		LastUpdated         time.Time     `json:"last_updated,omitempty"`
+		Health              float64       `json:"health,omitempty"`
+		CatalogListing      bool          `json:"catalog_listing,omitempty"`
+		ItemRelations       []interface{} `json:"item_relations,omitempty"`
+		Channels            []string      `json:"channels,omitempty"`
+	} `json:"body,omitempty"`
 }
