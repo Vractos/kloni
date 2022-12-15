@@ -24,6 +24,14 @@ CREATE TABLE IF NOT EXISTS mercadolivre_credentials(
   PRIMARY KEY (owner_id)
 );
 
+-- CREATING ORDER TABLE
+CREATE TABLE IF NOT EXISTS orders(
+  id UUID NOT NULL PRIMARY KEY,
+  marketplace_id VARCHAR(80) NOT NULL,
+  date_created TIMESTAMPTZ NOT NULL,
+  status VARCHAR(80)
+);
+
 -- -- FUNCTION TO ADD updated_at (last update) IN Mercado Livre CREDENTIALS
 -- CREATE OR REPLACE FUNCTION trigger_set_updated_timestamp()
 -- RETURNS TRIGGER AS $$
