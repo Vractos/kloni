@@ -95,7 +95,26 @@ func (q *OrderSQSQueue) ConsumeOrderNotification() []order.OrderMessage {
 		orderMessages[i].Store = *e.MessageAttributes["Store"].StringValue
 		orderMessages[i].OrderId = regexp.MustCompile(`\w+$`).FindString(*e.MessageAttributes["ResourcePath"].StringValue)
 		orderMessages[i].Attempts, _ = strconv.Atoi(*e.MessageAttributes["Attempts"].StringValue)
+		orderMessages[i].ReceiptHandle = *e.ReceiptHandle
 	}
 
 	return orderMessages
+}
+
+// DeleteOrderNotification implements order.Queue
+func (q *OrderSQSQueue) DeleteOrderNotification(receiptHandle string) error {
+
+	dMInput := &sqs.DeleteMessageInput{
+		QueueUrl:      &q.Url,
+		ReceiptHandle: aws.String(receiptHandle),
+	}
+
+	_, err := q.Client.DeleteMessage(context.TODO(), dMInput)
+	if err != nil {
+		log.Println("Got an error deleting the order message:")
+		log.Println(err)
+		return err
+	}
+
+	return nil
 }

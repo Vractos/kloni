@@ -16,9 +16,10 @@ type UseCase interface {
 */
 
 type OrderMessage struct {
-	Store    string
-	OrderId  string
-	Attempts int
+	Store         string
+	OrderId       string
+	Attempts      int
+	ReceiptHandle string
 }
 
 // Queue producer interface
@@ -28,6 +29,7 @@ type QueueProducer interface {
 
 type QueueConsumer interface {
 	ConsumeOrderNotification() []OrderMessage
+	DeleteOrderNotification(receiptHandle string) error
 }
 
 type Queue interface {

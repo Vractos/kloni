@@ -207,10 +207,14 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 	}
 
 	odr, err := entity.NewOrder(orderData.ID, orderItems, entity.OrderStatus(orderData.Status))
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
 
 	if err := o.repo.RegisterOrder(odr); err != nil {
 		log.Println(err.Error())
-		return errors.New("Couldn't store order")
+		return errors.New("couldn't store order")
 	}
 
 	// -------------------------------------------
@@ -220,6 +224,6 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 	if err := o.cache.SetOrder(orderData.ID); err != nil {
 		log.Println(err.Error())
 	}
-
+	o.queue.DeleteOrderNotification(order.ReceiptHandle)
 	return nil
 }
