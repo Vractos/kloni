@@ -65,7 +65,7 @@ func (s *StoreService) RetrieveMeliCredentialsFromMeliUserID(id string) (*Creden
 	}
 
 	timeNowUTC := time.Now().UTC()
-	if credentials.UpdatedAt.Sub(timeNowUTC).Hours() >= 5 {
+	if timeNowUTC.Sub(credentials.UpdatedAt.UTC()).Hours() >= 5 {
 		credentialsData, err := s.RefreshMeliCredential(*storeId, credentials.RefreshToken)
 		if err != nil {
 			return nil, err
@@ -77,7 +77,7 @@ func (s *StoreService) RetrieveMeliCredentialsFromMeliUserID(id string) (*Creden
 	return &Credentials{
 		StoreID:         *storeId,
 		MeliAccessToken: credentials.AccessToken,
-		MeliUserID:      credentials.UserID,
+		MeliUserID:      id,
 	}, nil
 }
 
