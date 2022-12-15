@@ -63,10 +63,30 @@ func removeDuplicateItens(items *[]common.OrderItem) {
 }
 
 func (o *OrderService) ProcessOrder(order OrderMessage) error {
-	//TODO: Verify if it's a new order
-	///Redis query
-	///Postgres query
-	///Delete the message from the queue (if it isn't new)
+	// --------------------------------------
+	// --- VERIFYING IF IT'S A NEW ORDER ---
+	// --------------------------------------
+
+	status, err := o.cache.GetOrder(order.OrderId)
+	if err != nil {
+		log.Println(err.Error())
+	}
+
+	if status != nil {
+		o.queue.DeleteOrderNotification(order.ReceiptHandle)
+		return nil
+	}
+
+	odrSaved, err := o.repo.GetOrder(order.OrderId)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+
+	if odrSaved != nil {
+		o.queue.DeleteOrderNotification(order.ReceiptHandle)
+		return nil
+	}
 
 	// --------------------------------------
 	// --------- GETTING CREDENTIALS --------
@@ -221,7 +241,7 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 	// ------------- CACHING ORDER ---------------
 	// -------------------------------------------
 
-	if err := o.cache.SetOrder(orderData.ID); err != nil {
+	if err := o.cache.SetOrder(odr); err != nil {
 		log.Println(err.Error())
 	}
 	o.queue.DeleteOrderNotification(order.ReceiptHandle)

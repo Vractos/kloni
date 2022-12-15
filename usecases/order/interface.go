@@ -50,6 +50,7 @@ type RepoWriter interface {
 }
 
 type RepoReader interface {
+	GetOrder(orderMarketplaceId string) (*entity.Order, error)
 }
 
 type Repository interface {
@@ -66,10 +67,11 @@ type Repository interface {
 */
 
 type CacheWriter interface {
-	SetOrder(orderId string) error
+	SetOrder(o *entity.Order) error
 }
 
 type CacheReader interface {
+	GetOrder(orderId string) (*entity.OrderStatus, error)
 }
 
 type Cache interface {
