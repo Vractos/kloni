@@ -1,7 +1,5 @@
 package entity
 
-const ()
-
 type Announcement struct {
 	ID          string
 	Title       string
@@ -14,4 +12,4 @@ type Announcement struct {
 	Category    string
 }
 
-func NewAnnouncement()
+// func NewAnnouncement()
