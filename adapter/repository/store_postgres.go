@@ -127,6 +127,24 @@ func (r *StorePostgreSQL) RetrieveMeliCredentialsFromMeliUserID(id string) (*ent
 }
 
 // UpdateMeliCredentials implements store.Repository
-func (*StorePostgreSQL) UpdateMeliCredentials(id entity.ID, c *common.MeliCredential) error {
-	panic("unimplemented")
+func (r *StorePostgreSQL) UpdateMeliCredentials(id entity.ID, c *common.MeliCredential) error {
+	_, err := r.db.Exec(context.Background(), `
+    UPDATE
+      mercadolivre_credentials
+    SET 
+      access_token=$1,
+      refresh_token=$2,
+      updated_at=$3
+    WHERE 
+      owner_id=$4
+  `, c.AccessToken, c.RefreshToken, c.UpdatedAt, id)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			log.Println(pgErr.Message)
+			log.Println(pgErr)
+		}
+		return err
+	}
+	return nil
 }
