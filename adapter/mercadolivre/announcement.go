@@ -1,10 +1,12 @@
 package mercadolivre
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 
@@ -99,4 +101,40 @@ func (m *MercadoLivre) GetAnnouncements(ids []string, accessToken string) (*[]co
 	}
 
 	return &meliAnnouncement, nil
+}
+
+func (m *MercadoLivre) UpdateQuantity(quantity int, announcementId, accessToken string) error {
+	url := fmt.Sprintf("%s/items/%s", m.Endpoint, announcementId)
+	bodyRequest := map[string]interface{}{
+		"available_quantity": quantity,
+	}
+
+	jsonBody, err := json.Marshal(bodyRequest)
+	if err != nil {
+		log.Printf("Failed to parse the issuer url: %v", err)
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Content-Type", "application/json")
+	resp, err := m.HttpClient.Do(req)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		b, _ := io.ReadAll(resp.Body)
+		log.Println("Error to update quantity: " + string(b))
+		return errors.New(string(b))
+	}
+
+	return nil
 }

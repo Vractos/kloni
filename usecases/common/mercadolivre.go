@@ -87,9 +87,14 @@ type meliReaderAnnouncement interface {
 	GetAnnouncements(ids []string, accessToken string) (*[]MeliAnnouncement, error)
 }
 
+type meliWriterAnnouncement interface {
+	UpdateQuantity(quantity int, announcementId, accessToken string) error
+}
+
 type MercadoLivre interface {
 	meliReaderStore
 	meliReaderOrder
 	meliWriterStore
 	meliReaderAnnouncement
+	meliWriterAnnouncement
 }

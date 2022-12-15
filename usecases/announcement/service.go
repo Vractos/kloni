@@ -38,8 +38,14 @@ func (a *AnnouncementService) RetrieveAnnouncements(sku string, credentials stor
 	return anns, err
 }
 
-func (a *AnnouncementService) RemoveQuantity(id string, quantity int, credentials store.Credentials) error {
-	log.Printf("Removing %v from %s...\n", quantity, id)
+func (a *AnnouncementService) UpdateQuantity(id string, newQuantity int, credentials store.Credentials) error {
+	err := a.meli.UpdateQuantity(newQuantity, id, credentials.MeliAccessToken)
+	if err != nil {
+		return &AnnouncementError{
+			Message:        "Error to update quantity",
+			AnnouncementID: id,
+			IsAbleToRetry:  true,
+		}
+	}
 	return nil
-	// panic("unimplemented")
 }

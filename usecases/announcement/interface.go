@@ -7,5 +7,5 @@ import (
 
 type UseCase interface {
 	RetrieveAnnouncements(sku string, credentials store.Credentials) (*[]common.MeliAnnouncement, error)
-	RemoveQuantity(id string, quantity int, credentials store.Credentials) error
+	UpdateQuantity(id string, quantity int, credentials store.Credentials) error
 }

@@ -137,7 +137,7 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 								ID:       cln.ID,
 								Title:    cln.Title,
 								Sku:      cln.Sku,
-								Quantity: item.Quantity,
+								Quantity: cln.Quantity - item.Quantity,
 							})
 						}
 					}
@@ -155,7 +155,7 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 					ID:       cln.ID,
 					Title:    cln.Title,
 					Sku:      cln.Sku,
-					Quantity: item.Quantity,
+					Quantity: cln.Quantity - item.Quantity,
 				})
 			}
 		}
@@ -179,7 +179,7 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 	}
 
 	for _, ann := range anns {
-		if err := o.announce.RemoveQuantity(ann.ID, ann.Quantity, *credentials); err != nil {
+		if err := o.announce.UpdateQuantity(ann.ID, ann.Quantity, *credentials); err != nil {
 			var annErr *announcement.AnnouncementError
 			if errors.As(err, &annErr) && annErr.IsAbleToRetry {
 				toChangeQuantity = append(toChangeQuantity, struct {
@@ -198,7 +198,7 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 	// TODO: Turn into a goroutine
 	if utils.PercentOf(len(toChangeQuantity), len(orderData.Items)) >= 40.0 {
 		for _, ann := range toChangeQuantity {
-			if err := o.announce.RemoveQuantity(ann.id, ann.quantity, *credentials); err != nil {
+			if err := o.announce.UpdateQuantity(ann.id, ann.quantity, *credentials); err != nil {
 				canNotChangeQuantity = append(canNotChangeQuantity, struct {
 					id       string
 					quantity int
