@@ -1,6 +1,9 @@
 package common
 
-import "time"
+import (
+	"time"
+	// "github.com/Vractos/dolly/entity"
+)
 
 /*
 ###################################
@@ -49,13 +52,53 @@ type MeliOrder struct {
 }
 
 type MeliAnnouncement struct {
-	ID           string
-	Title        string
-	Quantity     int
-	Price        float64
-	ThumbnailURL string
-	Sku          string
-	Link         string
+	ID            string
+	Title         string
+	Quantity      int
+	Price         float64
+	ThumbnailURL  string
+	Sku           string
+	Link          string
+	CategoryID    string
+	Condition     string
+	ListingTypeID string
+	Pictures      []string
+	Description   string
+	Channels      []string
+	SaleTerms     []struct {
+		ID          string
+		Name        string
+		ValueID     interface{}
+		ValueName   string
+		ValueStruct struct {
+			Number int
+			Unit   string
+		}
+		Values []struct {
+			ID     interface{}
+			Name   string
+			Struct struct {
+				Number int
+				Unit   string
+			}
+		}
+		ValueType string
+	}
+	Attributes []struct {
+		ID          string
+		Name        string
+		ValueID     string
+		ValueName   string
+		ValueStruct interface{}
+		Values      []struct {
+			ID     string
+			Name   string
+			Struct interface{}
+		}
+		AttributeGroupID   string
+		AttributeGroupName string
+		ValueType          string
+	}
 }
 
 /*
@@ -85,10 +128,14 @@ type meliReaderAnnouncement interface {
 	GetAnnouncementsIDsViaSKU(sku string, userId string, accessToken string) ([]string, error)
 	// Max 10 IDs
 	GetAnnouncements(ids []string, accessToken string) (*[]MeliAnnouncement, error)
+	GetAnnouncement(id string) (*MeliAnnouncement, error)
+	GetDescription(id string) (*string, error)
 }
 
 type meliWriterAnnouncement interface {
 	UpdateQuantity(quantity int, announcementId, accessToken string) error
+	PublishAnnouncement(announcementJson []byte, accessToken string) (ID *string, err error)
+	AddDescription(description, announcementId, accessToken string) error
 }
 
 type MercadoLivre interface {

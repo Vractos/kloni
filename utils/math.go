@@ -27,3 +27,7 @@ type Ordered interface {
 func PercentOf[T Numbers, E Numbers](part T, total E) float64 {
 	return (float64(part) * float64(100)) / float64(total)
 }
+
+func Percent[T Numbers, E Numbers](percent T, all E) float64 {
+	return ((float64(all) * float64(percent)) / float64(100))
+}
