@@ -52,23 +52,26 @@ func registerMeliCredentials(service store.UseCase) http.HandlerFunc {
 			log.Println(err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(erroMessage))
+			return
 		}
 		storeId, err := contexttools.RetrieveStoreIDFromCtx(r.Context())
 		if err != nil {
 			log.Println(err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(erroMessage))
+			return
 		} else if storeId != input.Store.String() {
 			w.WriteHeader(http.StatusForbidden)
 			w.Write([]byte("Invalid Store"))
+			return
 		}
 		err = service.RegisterMeliCredentials(*input)
 		if err != nil {
 			log.Println(err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(erroMessage))
+			return
 		}
-
 		w.WriteHeader(http.StatusCreated)
 	}
 }
@@ -77,7 +80,7 @@ func MakeStoreHandlers(r chi.Router, service store.UseCase) {
 	r.Route("/store", func(r chi.Router) {
 		r.Post("/", registerStore(service))
 		// That isn't the best approach to passing an auth middleware to only one route inside the route maker.
-		// TODO: Improve how this middleware is passed
+		// TODO Improve how this middleware is passed
 		r.With(mdw.EnsureValidToken()).With(mdw.AddStoreIDToCtx).Post("/meli-credentials", registerMeliCredentials(service))
 	})
 }

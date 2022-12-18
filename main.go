@@ -21,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/go-playground/validator/v10"
 	"github.com/go-redis/redis/v8"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -75,7 +76,7 @@ func main() {
 	orderCache := cache.NewOrderRedis(rdb)
 	// Services
 	storeService := store.NewStoreService(storeRepo, mercadoLivre)
-	announceService := announcement.NewAnnouncementService(mercadoLivre)
+	announceService := announcement.NewAnnouncementService(mercadoLivre, storeService)
 	orderService := order.NewOrderService(
 		orderQueue,
 		mercadoLivre,
@@ -89,7 +90,6 @@ func main() {
 	go func() {
 		ticker := time.Tick(time.Minute)
 		for range ticker {
-			log.Println("Pulling...")
 			orderChan <- orderQueue.ConsumeOrderNotification()
 		}
 	}()
@@ -102,9 +102,19 @@ func main() {
 		}
 	}()
 
-	// TODO: Make our own router from scratch, based in Radix Tree
+	// TODO Make our own router from scratch, based in Radix Tree
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+	r.Use(cors.Handler(cors.Options{
+		// AllowedOrigins:   []string{"https://foo.com"}, // Use this to allow specific origin hosts
+		AllowedOrigins: []string{"https://*", "http://*"},
+		// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: false,
+		MaxAge:           300, // Maximum value not ignored by any of major browsers
+	}))
 
 	// Public Routes
 	r.Group(func(r chi.Router) {
@@ -117,6 +127,8 @@ func main() {
 	r.Group(func(r chi.Router) {
 		r.Use(mdw.EnsureValidToken())
 		r.Use(mdw.AddStoreIDToCtx)
+
+		handler.MakeAnnouncementHandlers(r, announceService, storeService)
 	})
 
 	r.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {

@@ -16,12 +16,14 @@ func receiveMeliOrderNotification(service order.UseCase) http.HandlerFunc {
 		if err != nil {
 			log.Println(err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 
 		if err := service.ProcessWebhook(*input); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		w.WriteHeader(http.StatusOK)
 	}
 }
 

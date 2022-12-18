@@ -35,7 +35,7 @@ func (a *AnnouncementService) RetrieveAnnouncements(sku string, credentials stor
 	}
 
 	if len(annIDs) >= 20 {
-		// TODO: Chunk slice
+		// TODO Chunk slice
 	}
 	anns, err := a.meli.GetAnnouncements(annIDs, credentials.MeliAccessToken)
 	if err != nil {
