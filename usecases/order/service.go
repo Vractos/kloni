@@ -195,17 +195,17 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 		}
 	}
 
-	// TODO: Turn into a goroutine
-	if utils.PercentOf(len(toChangeQuantity), len(orderData.Items)) >= 40.0 {
-		for _, ann := range toChangeQuantity {
-			if err := o.announce.UpdateQuantity(ann.id, ann.quantity, *credentials); err != nil {
-				canNotChangeQuantity = append(canNotChangeQuantity, struct {
-					id       string
-					quantity int
-				}{ann.id, ann.quantity})
-			}
+	// TODO Turn into a goroutine
+	// if utils.PercentOf(len(toChangeQuantity), len(orderData.Items)) >= 40.0 {
+	for _, ann := range toChangeQuantity {
+		if err := o.announce.UpdateQuantity(ann.id, ann.quantity, *credentials); err != nil {
+			canNotChangeQuantity = append(canNotChangeQuantity, struct {
+				id       string
+				quantity int
+			}{ann.id, ann.quantity})
 		}
 	}
+	// }
 
 	if utils.PercentOf(len(canNotChangeQuantity), len(orderData.Items)) >= 20.0 {
 		return &OrderError{
@@ -226,7 +226,7 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 		}
 	}
 
-	odr, err := entity.NewOrder(orderData.ID, orderItems, entity.OrderStatus(orderData.Status))
+	odr, err := entity.NewOrder(credentials.StoreID, orderData.ID, orderItems, entity.OrderStatus(orderData.Status))
 	if err != nil {
 		log.Println(err.Error())
 		return err

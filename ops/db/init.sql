@@ -27,9 +27,20 @@ CREATE TABLE IF NOT EXISTS mercadolivre_credentials(
 -- CREATING ORDER TABLE
 CREATE TABLE IF NOT EXISTS orders(
   id UUID NOT NULL PRIMARY KEY,
+  store_id UUID REFERENCES store(id) NOT NULL,
   marketplace_id VARCHAR(80) NOT NULL,
-  date_created TIMESTAMPTZ NOT NULL,
-  status VARCHAR(80)
+  date_created TIMESTAMPTZ,
+  status VARCHAR(80),
+  UNIQUE (marketplace_id)
+);
+
+-- CREATING ORDER ITEMS TABLE
+CREATE TABLE IF NOT EXISTS order_items(
+  id UUID NOT NULL PRIMARY KEY,
+  title VARCHAR(70),
+  sku VARCHAR(80) NOT NULL,
+  quantiy SMALLINT NOT NULL,
+  order_id UUID REFERENCES orders(id) NOT NULL
 );
 
 -- -- FUNCTION TO ADD updated_at (last update) IN Mercado Livre CREDENTIALS

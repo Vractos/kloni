@@ -46,6 +46,7 @@ func (s OrderStatus) String() string {
 }
 
 type OrderItem struct {
+	ID       ID
 	Title    string
 	Quantity int
 	Sku      string
@@ -53,16 +54,22 @@ type OrderItem struct {
 
 type Order struct {
 	ID            ID
+	StoreID       ID
 	MarketplaceID string
 	DateCreated   time.Time
 	Items         []OrderItem
 	Status        OrderStatus
 }
 
-func NewOrder(id string, items []OrderItem, status OrderStatus) (*Order, error) {
+func NewOrder(store ID, marketplace_id string, items []OrderItem, status OrderStatus) (*Order, error) {
+	for i := range items {
+		items[i].ID = NewID()
+	}
+
 	return &Order{
 		ID:            NewID(),
-		MarketplaceID: id,
+		StoreID:       store,
+		MarketplaceID: marketplace_id,
 		DateCreated:   time.Now().UTC(),
 		Items:         items,
 		Status:        status,
