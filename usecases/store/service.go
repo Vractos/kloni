@@ -42,7 +42,7 @@ func (s *StoreService) RetrieveMeliCredentialsFromStoreID(id entity.ID) (*Creden
 	}
 
 	timeNowUTC := time.Now().UTC()
-	if credentials.UpdatedAt.Sub(timeNowUTC).Hours() >= 5 {
+	if timeNowUTC.Sub(credentials.UpdatedAt.UTC()).Hours() >= 5 {
 		credentialsData, err := s.RefreshMeliCredential(id, credentials.RefreshToken)
 		if err != nil {
 			return nil, err
