@@ -24,17 +24,24 @@ func cloneAnnouncement(service announcement.UseCase) http.HandlerFunc {
 			w.Write([]byte(errorMessage))
 			return
 		}
+
 		storeId, err := contexttools.RetrieveStoreIDFromCtx(r.Context())
 		if err != nil {
 			log.Println(err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(errorMessage))
 			return
-		} else if storeId != input.Store.String() {
-			w.WriteHeader(http.StatusForbidden)
-			w.Write([]byte("Invalid Store"))
+		}
+
+		store, err := entity.StringToID(storeId)
+		if err != nil {
+			log.Println(err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(errorMessage))
 			return
 		}
+
+		input.Store = store
 
 		err = service.CloneAnnouncement(*input)
 		if err != nil {
@@ -59,6 +66,7 @@ func getAnnouncements(announce announcement.UseCase, store store.UseCase) http.H
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(errorMessage))
 		}
+
 		id, err := entity.StringToID(storeId)
 		if err != nil {
 			log.Println(err.Error())

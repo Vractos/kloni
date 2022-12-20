@@ -7,6 +7,7 @@ import (
 
 	mdw "github.com/Vractos/dolly/adapter/api/middleware"
 	"github.com/Vractos/dolly/adapter/api/presenter"
+	"github.com/Vractos/dolly/entity"
 	"github.com/Vractos/dolly/pkg/contexttools"
 	"github.com/Vractos/dolly/usecases/store"
 	"github.com/go-chi/chi/v5"
@@ -54,17 +55,25 @@ func registerMeliCredentials(service store.UseCase) http.HandlerFunc {
 			w.Write([]byte(erroMessage))
 			return
 		}
+
 		storeId, err := contexttools.RetrieveStoreIDFromCtx(r.Context())
 		if err != nil {
 			log.Println(err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(erroMessage))
 			return
-		} else if storeId != input.Store.String() {
-			w.WriteHeader(http.StatusForbidden)
-			w.Write([]byte("Invalid Store"))
+		}
+
+		store, err := entity.StringToID(storeId)
+		if err != nil {
+			log.Println(err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(erroMessage))
 			return
 		}
+
+		input.Store = store
+
 		err = service.RegisterMeliCredentials(*input)
 		if err != nil {
 			log.Println(err.Error())
