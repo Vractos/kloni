@@ -1,9 +1,10 @@
+import { GetTokenSilentlyOptions, GetTokenSilentlyVerboseResponse } from '@auth0/auth0-spa-js';
 import axios, { AxiosError, AxiosResponse } from "axios";
 import { errorMessages } from '../constants/messages';
 import { apiErrorNames } from '../constants/system';
 
 const api = axios.create({
-  baseURL: import.meta.env.DEV ? '' : import.meta.env.BASE_API_URL,
+  baseURL: import.meta.env.DEV ? '' : import.meta.env.VITE_BASE_API_URL,
   timeout: 60000,
 })
 

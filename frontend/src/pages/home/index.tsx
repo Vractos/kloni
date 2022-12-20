@@ -4,22 +4,24 @@ import { MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import Table from '../../components/table';
 import { IAnnouncement } from '../../interfaces/announcement';
 import api from '../../api';
+import { useAuth0 } from '@auth0/auth0-react';
 
 function Home() {
   const [announcements, setAnnouncements] = useState<IAnnouncement[]>([])
   const [searchBarValue, setSearchBarValue] = useState("")
   const [emptyResultText, setEmptyResultText] = useState("Busque por anúncios através do SKU")
+  const { getAccessTokenSilently } = useAuth0()
 
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    api.announcement.getAnnouncements(searchBarValue)
-      .then(v => setAnnouncements(v))
-      .catch(_ => {
-        setEmptyResultText("Não há anúncios com esse SKU")
-        setAnnouncements([])
-      }
-      )
+    try {
+      const token = await getAccessTokenSilently()
+      const anns = await api.announcement.getAnnouncements(searchBarValue, token)
+      setAnnouncements(anns)
+    } catch (error) {
+      setEmptyResultText("Não há anúncios com esse SKU")
+      setAnnouncements([])}
   }
 
   return (

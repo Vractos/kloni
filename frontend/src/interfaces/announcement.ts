@@ -1,8 +1,9 @@
 export interface IAnnouncement {
-  picture: string;
+  id: string,
   title: string;
-  sku: string;
-  price: number;
   quantity: number;
+  price: number;
+  picture: string;
+  sku: string;
   link: string;
 }

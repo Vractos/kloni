@@ -70,7 +70,7 @@ const Table: React.FC<ITableProps> = ({ announcements }) => {
                   </span>
                   Clonar
                 </button>
-                <Modal isOpen={modalOpen} handleClose={setModalOpen}/>
+                <Modal isOpen={modalOpen} announcementId={announcement.id} handleClose={setModalOpen}/>
               </td>
             </tr>
           })}

@@ -13,7 +13,7 @@ function classNames(...classes: string[]) {
 }
 
 const NavBar = () => {
-  const { user, logout , } = useAuth0();
+  const { user, logout } = useAuth0();
 
   return (
     <Disclosure as="nav" className="bg-gray-800">

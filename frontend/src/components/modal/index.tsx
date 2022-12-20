@@ -1,20 +1,28 @@
 import React, { FormEvent, Fragment, useRef, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
+import api from '../../api';
+import NotificationFail from '../notification/fail';
+import NotificationSuccess from '../notification/success';
+import { useAuth0 } from '@auth0/auth0-react';
 
 interface ModalProps {
   isOpen: boolean;
+  announcementId: string;
   handleClose: React.Dispatch<React.SetStateAction<boolean>>
 
 }
 
 interface IInputs {
-  // TODO: Add key type (string)
+  // TODO Add key type (string)
   title: string
 }
-const Modal: React.FC<ModalProps> = ({ isOpen, handleClose }) => {
+const Modal: React.FC<ModalProps> = ({ isOpen, announcementId, handleClose }) => {
   // const cancelButtonRef = useRef(null)
   const [inputFields, setInputField] = useState<IInputs[]>([{ title: '' }])
+  const [showNotificationSuccess, setShowNotificationSuccess] = useState<boolean>(false)
+  const [showNotificationFail, setShowNotificationFail] = useState<boolean>(false)
+  const { getAccessTokenSilently } = useAuth0()
 
   const cancelButtonRef = useRef(null)
 
@@ -33,16 +41,35 @@ const Modal: React.FC<ModalProps> = ({ isOpen, handleClose }) => {
   }
 
   function closeModal(): void {
-    handleClose(false)
     setTimeout(() => {
-      setInputField([{ title: '' }])
-    }, 650);
+      handleClose(false)
+      setTimeout(() => {
+        setInputField([{ title: '' }])
+        setShowNotificationSuccess(false)
+        setShowNotificationFail(false)
+      }, 650);
+    }, 1000);
   }
 
   function handleFormChange(index: number, event: React.ChangeEvent<HTMLInputElement>) {
     let data = [...inputFields];
     data[index].title = event.target.value
     setInputField(data)
+  }
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    var titles = inputFields.map(input => input.title)
+    try {
+      const token = await getAccessTokenSilently()
+      const _ = await api.announcement.clone(announcementId, titles, token)
+      setShowNotificationFail(false)
+      setShowNotificationSuccess(true)
+      closeModal()
+
+    } catch (error) {
+      setShowNotificationFail(true)
+    }
   }
 
   return (
@@ -82,7 +109,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, handleClose }) => {
                   <form action="#" className='mt-5 sm:flex-col sm:items-center' method='POST'>
                     {inputFields.map((input, index) => {
                       return (
-                        <div className='flex mt-3'>
+                        <div className='flex mt-3' key={index}>
                           <div className="w-full sm:max-w-xs">
                             <label htmlFor="title" className="sr-only">
                               Título
@@ -91,6 +118,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, handleClose }) => {
                               type="text"
                               name="title"
                               id="title"
+                              maxLength={60}
                               value={input.title}
                               onChange={e => handleFormChange(index, e)}
                               className="block w-full rounded-md min-h-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-2"
@@ -102,16 +130,16 @@ const Modal: React.FC<ModalProps> = ({ isOpen, handleClose }) => {
                               onClick={e => removeInput(e, index)}
                               className="mt-3 inline-flex w-full items-center justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                             >
-                            <XMarkIcon className='h-5 w-4 text-white'/>
+                              <XMarkIcon className='h-5 w-4 text-white' />
                             </button>
                             :
                             <button
                               onClick={e => removeInput(e, index)}
                               className="mt-3 inline-flex w-full items-center justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm invisible"
                             >
-                            <XMarkIcon className='h-5 w-4 text-white'/>
+                              <XMarkIcon className='h-5 w-4 text-white' />
                             </button>
-                            
+
                           }
                         </div>
                       )
@@ -138,6 +166,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, handleClose }) => {
                   <button
                     type="button"
                     className="inline-flex justify-center rounded-md border border-transparent bg-blue-100 px-4 py-2 text-sm font-medium text-blue-900 hover:bg-blue-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                    onClick={e => handleSubmit(e)}
                   >
                     Clonar
                   </button>
@@ -146,6 +175,8 @@ const Modal: React.FC<ModalProps> = ({ isOpen, handleClose }) => {
             </Transition.Child>
           </div>
         </div >
+        <NotificationFail show={showNotificationFail} />
+        <NotificationSuccess show={showNotificationSuccess} />
       </Dialog >
     </Transition.Root >
   )
