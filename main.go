@@ -29,9 +29,11 @@ import (
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+	if os.Getenv("APP_ENV") == "" {
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatalf("Error loading .env file: %v", err)
+		}
 	}
 
 	validate := validator.New()
@@ -120,6 +122,7 @@ func main() {
 	r.Group(func(r chi.Router) {
 		// "/store"
 		handler.MakeStoreHandlers(r, storeService)
+		// "/order"
 		handler.MakeOrderHandlers(r, orderService)
 	})
 

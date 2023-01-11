@@ -1,6 +1,30 @@
 version: "3.8"
 
 services:
+  dolly:
+    container_name: dolly-server
+    build: .
+    image: dolly
+    ports:
+      - 8080:8080
+    environment:
+      - AUTH0_DOMAIN=${AUTH0_DOMAIN}
+      - AUTH0_AUDIENCE=${AUTH0_AUDIENCE}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB_NAME=${POSTGRES_DB_NAME}
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - MELI_APP_ID=${MELI_APP_ID}
+      - MELI_SECRET_KEY=${MELI_SECRET_KEY}
+      - MELI_REDIRECT_URL=${MELI_REDIRECT_URL}
+      - MELI_ENDPOINT=${MELI_ENDPOINT}
+      - ORDER_QUEUE_URL=${ORDER_QUEUE_URL}
+    volumes:
+      - ~/.aws:/root/.aws
+    depends_on:
+      - postgres
+      - redis
   postgres:
     container_name: postgres
     image: postgres:14.5
@@ -13,7 +37,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./ops/db/init.sql:/docker-entrypoint-initdb.d/init.sql
-
 
   # pgadmin:
   #   container_name: pgadmin
@@ -41,7 +64,7 @@ services:
       - 8001:8001
     volumes:
       - redisinsight:/db
-    
+
 volumes:
   postgres_data:
   pgadmin:
