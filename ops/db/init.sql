@@ -42,18 +42,3 @@ CREATE TABLE IF NOT EXISTS order_items(
   quantiy SMALLINT NOT NULL,
   order_id UUID REFERENCES orders(id) NOT NULL
 );
-
--- -- FUNCTION TO ADD updated_at (last update) IN Mercado Livre CREDENTIALS
--- CREATE OR REPLACE FUNCTION trigger_set_updated_timestamp()
--- RETURNS TRIGGER AS $$
--- BEGIN
---   NEW.updated_at = NOW();
---   RETURN NEW;
--- END;
--- $$ LANGUAGE plpgsql;
-
--- -- CREATING TRIGGER TO ADD updated_at (last update) IN Mercado Livre CREDENTIALS
--- CREATE TRIGGER set_updated_timestamp
--- BEFORE UPDATE ON mercadolivre_credentials
--- FOR EACH ROW
--- EXECUTE PROCEDURE trigger_set_update_timestamp();

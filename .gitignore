@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+bin
 
 # Test binary, built with `go test -c`
 *.test
@@ -17,6 +18,6 @@
 # Secrets
 .env
 
-.vscode/settings.json
 .env*
 !.env.tpl
+!.env.example
