@@ -16,6 +16,18 @@ module "network" {
   environment = var.environment
 }
 
+module "database" {
+  depends_on = [
+    module.network
+  ]
+  source = "./modules/database"
+  environment = var.environment
+  subnet_ids = module.network.private_subnets
+  db_username = var.db_username
+  db_password = var.db_password
+  db_security_group_ids = module.network.database_security_group_id
+}
+
 module "queue" {
   source = "./modules/queue"
   environment = var.environment
