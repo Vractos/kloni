@@ -33,21 +33,22 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
   
   tags = {
-    Name = "${var.public_subnet_name}-subnet"
+    Name = "${var.public_subnet_name}-public-subnet"
     Environment = var.environment
   }
 }
 
 
 resource "aws_subnet" "private" {
+  count = 2
   vpc_id = aws_vpc.main.id
 
-  cidr_block = "10.0.2.0/24"
-  availability_zone = data.aws_availability_zones.aws_az.names[1]
+  cidr_block = "10.0.${count.index+2}.0/24"
+  availability_zone = data.aws_availability_zones.aws_az.names[count.index+1]
   map_public_ip_on_launch = false
   
   tags = {
-    Name = "${var.private_subnet_name}-subnet"
+    Name = "${var.private_subnet_name}${count.index+1}-private-subnet"
     Environment = var.environment
   }
 }
@@ -81,6 +82,18 @@ resource "aws_route_table_association" "public_subnet_route_table_association" {
 }
 
 resource "aws_route_table_association" "private_subnet_route_table_association" {
-  subnet_id = aws_subnet.private.id
+  count = 2
+
+  subnet_id = element(aws_subnet.private[*].id, count.index)
   route_table_id = aws_route_table.private_subnet_route_table.id
+}
+
+resource "aws_security_group" "database_security_group" {
+  name        = "database_security_group"
+  description = "Allow Datababse traffic"
+  vpc_id      = aws_vpc.main.id
+
+  tags = {
+    Name = "database_security_group"
+  }
 }
