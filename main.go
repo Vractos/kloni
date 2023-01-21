@@ -28,14 +28,21 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func main() {
-	if os.Getenv("APP_ENV") == "" {
+func startEnv() {
+	if env := os.Getenv("APP_ENV"); env == "" || env == "development" {
 		err := godotenv.Load()
 		if err != nil {
 			log.Fatalf("Error loading .env file: %v", err)
 		}
 	}
+}
 
+func main() {
+	// ENV
+	startEnv()
+	// Tracer
+
+	// Validator package
 	validate := validator.New()
 
 	// AWS SDK
@@ -96,6 +103,7 @@ func main() {
 		}
 	}()
 
+	// Process messages
 	go func() {
 		for msgs := range orderChan {
 			for _, msg := range msgs {
@@ -104,6 +112,7 @@ func main() {
 		}
 	}()
 
+	// Router
 	// TODO Make our own router from scratch, based in Radix Tree
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
