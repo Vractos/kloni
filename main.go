@@ -14,18 +14,19 @@ import (
 	"github.com/Vractos/dolly/adapter/mercadolivre"
 	"github.com/Vractos/dolly/adapter/queue"
 	"github.com/Vractos/dolly/adapter/repository"
+	"github.com/Vractos/dolly/pkg/metrics"
 	"github.com/Vractos/dolly/usecases/announcement"
 	"github.com/Vractos/dolly/usecases/order"
 	"github.com/Vractos/dolly/usecases/store"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-playground/validator/v10"
 	"github.com/go-redis/redis/v8"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 )
 
 func startEnv() {
@@ -40,6 +41,10 @@ func startEnv() {
 func main() {
 	// ENV
 	startEnv()
+
+	// Log
+	logger := metrics.NewLogger("info")
+	defer logger.Sync()
 	// Tracer
 
 	// Validator package
@@ -48,7 +53,7 @@ func main() {
 	// AWS SDK
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
-		log.Panic("Failed to load config: " + err.Error())
+		logger.Panic("Failed to load config: "+err.Error(), err)
 	}
 
 	/// SQS
@@ -70,7 +75,9 @@ func main() {
 		DB:       0,
 	})
 	pong, err := rdb.Ping(rdb.Context()).Result()
-	log.Println(pong, err)
+	logger.Warn(pong,
+		zap.Error(err),
+	)
 
 	// Order Queue
 	orderChan := make(chan []order.OrderMessage)
@@ -115,7 +122,8 @@ func main() {
 	// Router
 	// TODO Make our own router from scratch, based in Radix Tree
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	r.Use(mdw.NewStructuredLogger(logger))
+	// r.Use(middleware.Logger)
 	r.Use(cors.Handler(cors.Options{
 		// AllowedOrigins:   []string{"https://foo.com"}, // Use this to allow specific origin hosts
 		AllowedOrigins: []string{"https://*", "http://*"},
@@ -147,9 +155,9 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	log.Println("Listing on 8080...")
+	logger.Info("Listing on 8080")
 	err = http.ListenAndServe(":8080", r)
 	if err != nil {
-		log.Panic(err.Error())
+		logger.Panic(err.Error(), err)
 	}
 }
