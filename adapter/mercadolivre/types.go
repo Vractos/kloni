@@ -461,3 +461,10 @@ type Description struct {
 		Status string `json:"status,omitempty"`
 	} `json:"snapshot,omitempty"`
 }
+
+type MeliError struct {
+	Message string        `json:"message,omitempty"`
+	Error   string        `json:"error,omitempty"`
+	Status  int           `json:"status,omitempty"`
+	Cause   []interface{} `json:"cause,omitempty"`
+}
