@@ -44,6 +44,11 @@ func (l *Logger) Panic(message string, err error, tags ...zap.Field) {
 	l.log.Panic(message, tags...)
 }
 
+func (l *Logger) Fatal(message string, err error, tags ...zap.Field) {
+	tags = append(tags, zap.NamedError("error", err))
+	l.log.Fatal(message, tags...)
+}
+
 func (l *Logger) Warn(message string, tags ...zap.Field) {
 	l.log.Warn(message, tags...)
 }
@@ -55,6 +60,10 @@ func (l *Logger) Error(message string, err error, tags ...zap.Field) {
 
 func (l *Logger) Sync() {
 	l.log.Sync()
+}
+
+func (l *Logger) Debug(message string, tags ...zap.Field) {
+	l.log.Debug(message, tags...)
 }
 
 func getLogLevel(level string) zapcore.Level {

@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+
 	"time"
 
 	"github.com/Vractos/dolly/adapter/api/handler"
@@ -81,18 +82,18 @@ func main() {
 
 	// Order Queue
 	orderChan := make(chan []order.OrderMessage)
-	orderQueue := queue.NewOrderQueue(client, os.Getenv("ORDER_QUEUE_URL"))
+	orderQueue := queue.NewOrderQueue(client, os.Getenv("ORDER_QUEUE_URL"), *logger)
 
 	// Mercado Livre
-	mercadoLivre := mercadolivre.NewMercadoLivre(os.Getenv("MELI_APP_ID"), os.Getenv("MELI_SECRET_KEY"), os.Getenv("MELI_REDIRECT_URL"), os.Getenv("MELI_ENDPOINT"), validate)
+	mercadoLivre := mercadolivre.NewMercadoLivre(os.Getenv("MELI_APP_ID"), os.Getenv("MELI_SECRET_KEY"), os.Getenv("MELI_REDIRECT_URL"), os.Getenv("MELI_ENDPOINT"), validate, *logger)
 	// Repositories
-	storeRepo := repository.NewStorePostgreSQL(dbpool)
-	orderRepo := repository.NewOrderPostgreSQL(dbpool)
+	storeRepo := repository.NewStorePostgreSQL(dbpool, *logger)
+	orderRepo := repository.NewOrderPostgreSQL(dbpool, *logger)
 	// Caches
 	orderCache := cache.NewOrderRedis(rdb)
 	// Services
-	storeService := store.NewStoreService(storeRepo, mercadoLivre)
-	announceService := announcement.NewAnnouncementService(mercadoLivre, storeService)
+	storeService := store.NewStoreService(storeRepo, mercadoLivre, *logger)
+	announceService := announcement.NewAnnouncementService(mercadoLivre, storeService, *logger)
 	orderService := order.NewOrderService(
 		orderQueue,
 		mercadoLivre,
@@ -100,6 +101,7 @@ func main() {
 		announceService,
 		orderRepo,
 		orderCache,
+		*logger,
 	)
 
 	// Pull messages from queue
@@ -138,17 +140,17 @@ func main() {
 	// Public Routes
 	r.Group(func(r chi.Router) {
 		// "/store"
-		handler.MakeStoreHandlers(r, storeService)
+		handler.MakeStoreHandlers(r, storeService, *logger)
 		// "/order"
-		handler.MakeOrderHandlers(r, orderService)
+		handler.MakeOrderHandlers(r, orderService, *logger)
 	})
 
 	// Private Routes
 	r.Group(func(r chi.Router) {
-		r.Use(mdw.EnsureValidToken())
+		r.Use(mdw.EnsureValidToken(*logger))
 		r.Use(mdw.AddStoreIDToCtx)
 
-		handler.MakeAnnouncementHandlers(r, announceService, storeService)
+		handler.MakeAnnouncementHandlers(r, announceService, storeService, *logger)
 	})
 
 	r.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
