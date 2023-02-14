@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	mdw "github.com/Vractos/dolly/adapter/api/middleware"
 	"github.com/Vractos/dolly/adapter/api/presenter"
@@ -25,6 +26,13 @@ func registerStore(service store.UseCase, logger metrics.Logger) http.HandlerFun
 			w.Write([]byte(errorMessage))
 			return
 		}
+
+		input.Email = strings.Replace(input.Email, "\n", "", -1)
+		input.Email = strings.Replace(input.Email, "\r", "", -1)
+
+		input.Name = strings.Replace(input.Name, "\n", "", -1)
+		input.Name = strings.Replace(input.Name, "\r", "", -1)
+
 		id, err := service.RegisterStore(*input)
 		if err != nil {
 			logger.Error(
@@ -75,8 +83,9 @@ func registerMeliCredentials(service store.UseCase, logger metrics.Logger) http.
 			w.Write([]byte(erroMessage))
 			return
 		}
-
-		store, err := entity.StringToID(storeId)
+		escapedStoreId := strings.Replace(storeId, "\n", "", -1)
+		escapedStoreId = strings.Replace(escapedStoreId, "\r", "", -1)
+		store, err := entity.StringToID(escapedStoreId)
 		if err != nil {
 			logger.Error("Fail to convert storeID from a string to an entity ID", err)
 			w.WriteHeader(http.StatusInternalServerError)

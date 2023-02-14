@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/Vractos/dolly/adapter/api/presenter"
 	"github.com/Vractos/dolly/entity"
@@ -34,7 +35,9 @@ func cloneAnnouncement(service announcement.UseCase, logger metrics.Logger) http
 			return
 		}
 
-		store, err := entity.StringToID(storeId)
+		escapedStoreId := strings.Replace(storeId, "\n", "", -1)
+		escapedStoreId = strings.Replace(escapedStoreId, "\r", "", -1)
+		store, err := entity.StringToID(escapedStoreId)
 		if err != nil {
 			logger.Error("Fail to convert storeID from a string to an entity ID", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -43,6 +46,9 @@ func cloneAnnouncement(service announcement.UseCase, logger metrics.Logger) http
 		}
 
 		input.Store = store
+		escapedRootId := strings.Replace(input.RootID, "\n", "", -1)
+		escapedRootId = strings.Replace(escapedRootId, "\r", "", -1)
+		input.RootID = escapedRootId
 
 		err = service.CloneAnnouncement(*input)
 		if err != nil {
@@ -61,6 +67,8 @@ func getAnnouncements(announce announcement.UseCase, store store.UseCase, logger
 		errorMessage := "Error to get announcement"
 		notFound := "Announcement not found"
 		sku := chi.URLParam(r, "sku")
+		sku = strings.Replace(sku, "\n", "", -1)
+		sku = strings.Replace(sku, "\r", "", -1)
 
 		storeId, err := contexttools.RetrieveStoreIDFromCtx(r.Context())
 		if err != nil {
@@ -69,7 +77,9 @@ func getAnnouncements(announce announcement.UseCase, store store.UseCase, logger
 			w.Write([]byte(errorMessage))
 		}
 
-		id, err := entity.StringToID(storeId)
+		escapedStoreId := strings.Replace(storeId, "\n", "", -1)
+		escapedStoreId = strings.Replace(escapedStoreId, "\r", "", -1)
+		id, err := entity.StringToID(escapedStoreId)
 		if err != nil {
 			logger.Error("Fail to convert storeID from a string to an entity ID", err)
 			w.WriteHeader(http.StatusInternalServerError)
