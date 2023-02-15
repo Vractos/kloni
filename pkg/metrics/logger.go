@@ -35,7 +35,18 @@ func NewLogger(logLevel string) *Logger {
 	return &Logger{log: log}
 }
 
+func escapeStringTags(tags *[]zap.Field) {
+	for i, tag := range *tags {
+		if tag.Type == zapcore.StringType {
+			escapedVal := strings.Replace(tag.String, "\n", "", -1)
+			escapedVal = strings.Replace(escapedVal, "\r", "", -1)
+			(*tags)[i].String = escapedVal
+		}
+	}
+}
+
 func (l *Logger) Info(message string, tags ...zap.Field) {
+	escapeStringTags(&tags)
 	l.log.Info(message, tags...)
 }
 
