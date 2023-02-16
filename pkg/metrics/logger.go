@@ -35,36 +35,48 @@ func NewLogger(logLevel string) *Logger {
 	return &Logger{log: log}
 }
 
+func escapeString(str *string) {
+	replacer := strings.NewReplacer("\n", "", "\r", "")
+	*str = replacer.Replace(*str)
+}
+
 func escapeStringTags(tags *[]zap.Field) {
 	for i, tag := range *tags {
 		if tag.Type == zapcore.StringType {
-			escapedVal := strings.Replace(tag.String, "\n", "", -1)
-			escapedVal = strings.Replace(escapedVal, "\r", "", -1)
-			(*tags)[i].String = escapedVal
+			escapeString(&(*tags)[i].String)
 		}
 	}
 }
 
 func (l *Logger) Info(message string, tags ...zap.Field) {
 	escapeStringTags(&tags)
+	escapeString(&message)
 	l.log.Info(message, tags...)
 }
 
 func (l *Logger) Panic(message string, err error, tags ...zap.Field) {
+	escapeString(&message)
+	escapeStringTags(&tags)
 	tags = append(tags, zap.NamedError("error", err))
 	l.log.Panic(message, tags...)
 }
 
 func (l *Logger) Fatal(message string, err error, tags ...zap.Field) {
+	escapeString(&message)
+	escapeStringTags(&tags)
 	tags = append(tags, zap.NamedError("error", err))
 	l.log.Fatal(message, tags...)
 }
 
 func (l *Logger) Warn(message string, tags ...zap.Field) {
+	escapeString(&message)
+	escapeStringTags(&tags)
 	l.log.Warn(message, tags...)
 }
 
 func (l *Logger) Error(message string, err error, tags ...zap.Field) {
+	escapeString(&message)
+	escapeStringTags(&tags)
 	tags = append(tags, zap.NamedError("error", err))
 	l.log.Error(message, tags...)
 }
@@ -74,6 +86,8 @@ func (l *Logger) Sync() {
 }
 
 func (l *Logger) Debug(message string, tags ...zap.Field) {
+	escapeString(&message)
+	escapeStringTags(&tags)
 	l.log.Debug(message, tags...)
 }
 
