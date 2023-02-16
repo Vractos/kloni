@@ -14,7 +14,9 @@ FROM alpine
 
 WORKDIR /usr/src/app/
 
-ENV APP_ENV=development
+RUN apk add --no-cache curl bash
+
+ENV APP_ENV=test
 
 # Auth0 #
 ARG auth0_domain

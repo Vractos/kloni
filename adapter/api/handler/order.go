@@ -2,24 +2,33 @@ package handler
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
+	"github.com/Vractos/dolly/pkg/metrics"
 	"github.com/Vractos/dolly/usecases/order"
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
 
-func receiveMeliOrderNotification(service order.UseCase) http.HandlerFunc {
+func receiveMeliOrderNotification(service order.UseCase, logger metrics.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		input := &order.OrderWebhookDtoInput{}
 		err := json.NewDecoder(r.Body).Decode(input)
 		if err != nil {
-			log.Println(err.Error())
+			logger.Error("Error to decode body", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		if err := service.ProcessWebhook(*input); err != nil {
+			logger.Error(
+				"Fail to process webhook",
+				err,
+				zap.String("notification_id", input.ID),
+				zap.Int("user_id", input.UserID),
+				zap.Int("attempts", input.Attempts),
+				zap.String("sent", input.Sent),
+			)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -27,8 +36,8 @@ func receiveMeliOrderNotification(service order.UseCase) http.HandlerFunc {
 	}
 }
 
-func MakeOrderHandlers(r chi.Router, service order.UseCase) {
+func MakeOrderHandlers(r chi.Router, service order.UseCase, logger metrics.Logger) {
 	r.Route("/order", func(r chi.Router) {
-		r.Post("/meli-notification", receiveMeliOrderNotification(service))
+		r.Post("/meli-notification", receiveMeliOrderNotification(service, logger))
 	})
 }

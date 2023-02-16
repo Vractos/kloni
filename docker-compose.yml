@@ -5,6 +5,10 @@ services:
     container_name: dolly-server
     build: .
     image: dolly
+    logging:
+      driver: loki
+      options:
+        loki-url: https://369705:eyJrIjoiZDljYWRjYzVhM2ZiMjRiMGM2ZTM5M2Y1NjdiMjkwY2E4ZTc0NWI0MyIsIm4iOiJkb2xseS1kZXYiLCJpZCI6NzgxMjc3fQ==@logs-prod-017.grafana.net/loki/api/v1/push
     ports:
       - 8080:8080
     environment:

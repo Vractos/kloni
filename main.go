@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+
 	"time"
 
 	"github.com/Vractos/dolly/adapter/api/handler"
@@ -14,34 +15,46 @@ import (
 	"github.com/Vractos/dolly/adapter/mercadolivre"
 	"github.com/Vractos/dolly/adapter/queue"
 	"github.com/Vractos/dolly/adapter/repository"
+	"github.com/Vractos/dolly/pkg/metrics"
 	"github.com/Vractos/dolly/usecases/announcement"
 	"github.com/Vractos/dolly/usecases/order"
 	"github.com/Vractos/dolly/usecases/store"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-playground/validator/v10"
 	"github.com/go-redis/redis/v8"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 )
 
-func main() {
-	if os.Getenv("APP_ENV") == "" {
+func startEnv() {
+	if env := os.Getenv("APP_ENV"); env == "" || env == "development" {
 		err := godotenv.Load()
 		if err != nil {
 			log.Fatalf("Error loading .env file: %v", err)
 		}
 	}
+}
 
+func main() {
+	// ENV
+	startEnv()
+
+	// Log
+	logger := metrics.NewLogger("info")
+	defer logger.Sync()
+	// Tracer
+
+	// Validator package
 	validate := validator.New()
 
 	// AWS SDK
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
-		log.Panic("Failed to load config: " + err.Error())
+		logger.Panic("Failed to load config: "+err.Error(), err)
 	}
 
 	/// SQS
@@ -63,22 +76,24 @@ func main() {
 		DB:       0,
 	})
 	pong, err := rdb.Ping(rdb.Context()).Result()
-	log.Println(pong, err)
+	logger.Warn(pong,
+		zap.Error(err),
+	)
 
 	// Order Queue
 	orderChan := make(chan []order.OrderMessage)
-	orderQueue := queue.NewOrderQueue(client, os.Getenv("ORDER_QUEUE_URL"))
+	orderQueue := queue.NewOrderQueue(client, os.Getenv("ORDER_QUEUE_URL"), *logger)
 
 	// Mercado Livre
-	mercadoLivre := mercadolivre.NewMercadoLivre(os.Getenv("MELI_APP_ID"), os.Getenv("MELI_SECRET_KEY"), os.Getenv("MELI_REDIRECT_URL"), os.Getenv("MELI_ENDPOINT"), validate)
+	mercadoLivre := mercadolivre.NewMercadoLivre(os.Getenv("MELI_APP_ID"), os.Getenv("MELI_SECRET_KEY"), os.Getenv("MELI_REDIRECT_URL"), os.Getenv("MELI_ENDPOINT"), validate, *logger)
 	// Repositories
-	storeRepo := repository.NewStorePostgreSQL(dbpool)
-	orderRepo := repository.NewOrderPostgreSQL(dbpool)
+	storeRepo := repository.NewStorePostgreSQL(dbpool, *logger)
+	orderRepo := repository.NewOrderPostgreSQL(dbpool, *logger)
 	// Caches
 	orderCache := cache.NewOrderRedis(rdb)
 	// Services
-	storeService := store.NewStoreService(storeRepo, mercadoLivre)
-	announceService := announcement.NewAnnouncementService(mercadoLivre, storeService)
+	storeService := store.NewStoreService(storeRepo, mercadoLivre, *logger)
+	announceService := announcement.NewAnnouncementService(mercadoLivre, storeService, *logger)
 	orderService := order.NewOrderService(
 		orderQueue,
 		mercadoLivre,
@@ -86,6 +101,7 @@ func main() {
 		announceService,
 		orderRepo,
 		orderCache,
+		*logger,
 	)
 
 	// Pull messages from queue
@@ -96,6 +112,7 @@ func main() {
 		}
 	}()
 
+	// Process messages
 	go func() {
 		for msgs := range orderChan {
 			for _, msg := range msgs {
@@ -104,9 +121,11 @@ func main() {
 		}
 	}()
 
+	// Router
 	// TODO Make our own router from scratch, based in Radix Tree
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	r.Use(mdw.NewStructuredLogger(logger))
+	// r.Use(middleware.Logger)
 	r.Use(cors.Handler(cors.Options{
 		// AllowedOrigins:   []string{"https://foo.com"}, // Use this to allow specific origin hosts
 		AllowedOrigins: []string{"https://*", "http://*"},
@@ -121,26 +140,26 @@ func main() {
 	// Public Routes
 	r.Group(func(r chi.Router) {
 		// "/store"
-		handler.MakeStoreHandlers(r, storeService)
+		handler.MakeStoreHandlers(r, storeService, *logger)
 		// "/order"
-		handler.MakeOrderHandlers(r, orderService)
+		handler.MakeOrderHandlers(r, orderService, *logger)
 	})
 
 	// Private Routes
 	r.Group(func(r chi.Router) {
-		r.Use(mdw.EnsureValidToken())
+		r.Use(mdw.EnsureValidToken(*logger))
 		r.Use(mdw.AddStoreIDToCtx)
 
-		handler.MakeAnnouncementHandlers(r, announceService, storeService)
+		handler.MakeAnnouncementHandlers(r, announceService, storeService, *logger)
 	})
 
 	r.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	log.Println("Listing on 8080...")
+	logger.Info("Listing on 8080")
 	err = http.ListenAndServe(":8080", r)
 	if err != nil {
-		log.Panic(err.Error())
+		logger.Panic(err.Error(), err)
 	}
 }

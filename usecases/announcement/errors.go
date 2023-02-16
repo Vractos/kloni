@@ -11,9 +11,9 @@ type AnnouncementError struct {
 
 func (a *AnnouncementError) Error() string {
 	if a.AnnouncementID != "" {
-		return fmt.Sprintf("Message: %s - Announcement ID/SKU: %s", a.Message, a.AnnouncementID)
+		return fmt.Sprintf("Message: %s - Announcement ID: %s", a.Message, a.AnnouncementID)
 	} else if a.Sku != "" {
-		return fmt.Sprintf("Message: %s - Announcement ID/SKU: %s", a.Message, a.Sku)
+		return fmt.Sprintf("Message: %s - Announcement SKU: %s", a.Message, a.Sku)
 	}
 
 	return fmt.Sprintf("Message: %s", a.Message)

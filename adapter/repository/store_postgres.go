@@ -3,20 +3,22 @@ package repository
 import (
 	"context"
 	"errors"
-	"log"
 
 	"github.com/Vractos/dolly/entity"
+	"github.com/Vractos/dolly/pkg/metrics"
 	"github.com/Vractos/dolly/usecases/common"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.uber.org/zap"
 )
 
 type StorePostgreSQL struct {
-	db *pgxpool.Pool
+	db     *pgxpool.Pool
+	logger metrics.Logger
 }
 
-func NewStorePostgreSQL(db *pgxpool.Pool) *StorePostgreSQL {
-	return &StorePostgreSQL{db: db}
+func NewStorePostgreSQL(db *pgxpool.Pool, logger metrics.Logger) *StorePostgreSQL {
+	return &StorePostgreSQL{db: db, logger: logger}
 }
 
 // Get implements store.Repository
@@ -33,8 +35,7 @@ func (r *StorePostgreSQL) Create(e *entity.Store) (entity.ID, error) {
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
-			log.Println(pgErr.Message)
-			log.Println(pgErr)
+			r.logger.Error(pgErr.Message, pgErr, zap.String("db_error_code", pgErr.Code))
 		}
 		return e.ID, err
 	}
@@ -61,8 +62,7 @@ func (r *StorePostgreSQL) RegisterMeliCredential(id entity.ID, c *common.MeliCre
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
-			log.Println(pgErr.Message)
-			log.Println(pgErr)
+			r.logger.Error(pgErr.Message, pgErr, zap.String("db_error_code", pgErr.Code))
 		}
 		return err
 	}
@@ -75,20 +75,19 @@ func (r *StorePostgreSQL) RetrieveMeliCredentialsFromStoreID(id entity.ID) (*com
 
 	err := r.db.QueryRow(context.Background(), `
 	SELECT
-    access_token,
-    user_id,
+  access_token,
+  user_id,
     refresh_token,
     updated_at
-  FROM
+    FROM
     mercadolivre_credentials
-  WHERE
+    WHERE
     owner_id=$1
-	`, id).Scan(&credential.AccessToken, &credential.UserID, &credential.RefreshToken, &credential.UpdatedAt)
+    `, id).Scan(&credential.AccessToken, &credential.UserID, &credential.RefreshToken, &credential.UpdatedAt)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
-			log.Println(pgErr.Message)
-			log.Println(pgErr)
+			r.logger.Error(pgErr.Message, pgErr, zap.String("db_error_code", pgErr.Code))
 		}
 		return nil, err
 	}
@@ -105,20 +104,19 @@ func (r *StorePostgreSQL) RetrieveMeliCredentialsFromMeliUserID(id string) (*ent
 
 	err := r.db.QueryRow(context.Background(), `
 	SELECT
-	  owner_id,
-    access_token,
-    refresh_token,
-    updated_at
+  owner_id,
+  access_token,
+  refresh_token,
+  updated_at
   FROM
-    mercadolivre_credentials
+  mercadolivre_credentials
   WHERE
-    user_id=$1
+  user_id=$1
 	`, id).Scan(&storeId, &credential.AccessToken, &credential.RefreshToken, &credential.UpdatedAt)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
-			log.Println(pgErr.Message)
-			log.Println(pgErr)
+			r.logger.Error(pgErr.Message, pgErr, zap.String("db_error_code", pgErr.Code))
 		}
 		return nil, nil, err
 	}
@@ -130,19 +128,18 @@ func (r *StorePostgreSQL) RetrieveMeliCredentialsFromMeliUserID(id string) (*ent
 func (r *StorePostgreSQL) UpdateMeliCredentials(id entity.ID, c *common.MeliCredential) error {
 	_, err := r.db.Exec(context.Background(), `
     UPDATE
-      mercadolivre_credentials
+    mercadolivre_credentials
     SET 
-      access_token=$1,
-      refresh_token=$2,
-      updated_at=$3
+    access_token=$1,
+    refresh_token=$2,
+    updated_at=$3
     WHERE 
-      owner_id=$4
-  `, c.AccessToken, c.RefreshToken, c.UpdatedAt, id)
+    owner_id=$4
+    `, c.AccessToken, c.RefreshToken, c.UpdatedAt, id)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
-			log.Println(pgErr.Message)
-			log.Println(pgErr)
+			r.logger.Error(pgErr.Message, pgErr, zap.String("db_error_code", pgErr.Code))
 		}
 		return err
 	}

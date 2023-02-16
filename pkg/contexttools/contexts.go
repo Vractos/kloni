@@ -18,7 +18,7 @@ var (
 func RetrieveStoreIDFromCtx(ctx context.Context) (string, error) {
 	tokenStr := ctx.Value(ContextKeyStoreId).(string)
 	if tokenStr == "" {
-		return "", errors.New("error to get store id from context")
+		return "", errors.New("context doesn't have the store id")
 	}
 	return tokenStr, nil
 }

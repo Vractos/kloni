@@ -2,13 +2,14 @@ package order
 
 import (
 	"errors"
-	"log"
 
 	"github.com/Vractos/dolly/entity"
+	"github.com/Vractos/dolly/pkg/metrics"
 	"github.com/Vractos/dolly/usecases/announcement"
 	"github.com/Vractos/dolly/usecases/common"
 	"github.com/Vractos/dolly/usecases/store"
 	"github.com/Vractos/dolly/utils"
+	"go.uber.org/zap"
 )
 
 type OrderService struct {
@@ -18,6 +19,7 @@ type OrderService struct {
 	announce announcement.UseCase
 	repo     Repository
 	cache    Cache
+	logger   metrics.Logger
 }
 
 func NewOrderService(
@@ -27,6 +29,7 @@ func NewOrderService(
 	announceUseCase announcement.UseCase,
 	repository Repository,
 	cache Cache,
+	logger metrics.Logger,
 ) *OrderService {
 	return &OrderService{
 		queue:    queue,
@@ -35,12 +38,20 @@ func NewOrderService(
 		announce: announceUseCase,
 		repo:     repository,
 		cache:    cache,
+		logger:   logger,
 	}
 }
 
 func (o *OrderService) ProcessWebhook(input OrderWebhookDtoInput) error {
 	if err := o.queue.PostOrderNotification(input); err != nil {
-		log.Println(err.Error())
+		o.logger.Error(
+			"Error to post order notification",
+			err,
+			zap.String("notification_id", input.ID),
+			zap.Int("user_id", input.UserID),
+			zap.Int("attempts", input.Attempts),
+			zap.String("sent", input.Sent),
+		)
 		return errors.New("error to post order notification")
 	}
 	return nil
@@ -69,7 +80,7 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 
 	status, err := o.cache.GetOrder(order.OrderId)
 	if err != nil {
-		log.Println(err.Error())
+		o.logger.Warn("Fail to retrieve order cache", zap.String("order_id", order.OrderId), zap.Error(err))
 	}
 
 	if status != nil {
@@ -79,7 +90,7 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 
 	odrSaved, err := o.repo.GetOrder(order.OrderId)
 	if err != nil {
-		log.Println(err.Error())
+		o.logger.Error("Fail to retrieve order from the DB", err, zap.String("order_id", order.OrderId))
 		return err
 	}
 
@@ -93,7 +104,7 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 	// --------------------------------------
 	credentials, err := o.store.RetrieveMeliCredentialsFromMeliUserID(order.Store)
 	if err != nil {
-		log.Println(err.Error())
+		o.logger.Error("Error in retrieving Meli credentials during order processing", err, zap.String("order_id", order.OrderId))
 		return errors.New("error to process order - get credentials")
 	}
 
@@ -102,6 +113,7 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 	// --------------------------------------
 	orderData, err := o.meli.FetchOrder(order.OrderId, credentials.MeliAccessToken)
 	if err != nil {
+		o.logger.Error("Error to fetch the order", err, zap.String("order_id", order.OrderId))
 		return err
 	}
 
@@ -123,12 +135,13 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 		if err != nil {
 			var annErr *announcement.AnnouncementError
 			if errors.As(err, &annErr) {
-				log.Println(annErr.Error())
+				o.logger.Warn("Fail in retrieving the order product clones", zap.Error(err), zap.String("order_id", order.OrderId), zap.String("sku", item.Sku))
 				// Retry
 				if annErr.IsAbleToRetry {
+					o.logger.Info("Retrying to retrieve order products clones...", zap.String("order_id", order.OrderId), zap.String("sku", item.Sku))
 					clns, err := o.announce.RetrieveAnnouncements(item.Sku, *credentials)
 					if err != nil {
-						log.Println(err.Error())
+						o.logger.Error("Error in retrieving the order product clones", err, zap.String("order_id", order.OrderId))
 						return err
 					}
 					for _, cln := range *clns {
@@ -142,10 +155,11 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 						}
 					}
 				} else {
+					o.logger.Error("Error in retrieving the order product clones", err, zap.String("order_id", order.OrderId), zap.String("sku", item.Sku))
 					return err
 				}
 			} else {
-				log.Println(err.Error())
+				o.logger.Error("Error in retrieving the order product clones", err, zap.String("order_id", order.OrderId), zap.String("sku", item.Sku))
 				return err
 			}
 		}
@@ -208,12 +222,22 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 	// }
 
 	if utils.PercentOf(len(canNotChangeQuantity), len(orderData.Items)) >= 20.0 {
-		return &OrderError{
+		oErr := &OrderError{
 			Message:            "Couldn't change the announcements",
 			AnnouncementsError: canNotChangeQuantity,
 		}
+
+		o.logger.Error(oErr.Message, err, zap.Reflect("Announcements that were not possible to change the quantity", canNotChangeQuantity))
+		return oErr
 	}
 
+	if canNotChangeQuantity != nil {
+		oErr := &OrderError{
+			Message:            "Couldn't change the announcements",
+			AnnouncementsError: canNotChangeQuantity,
+		}
+		o.logger.Warn(oErr.Message, zap.Reflect("Announcements that were not possible to change the quantity", canNotChangeQuantity))
+	}
 	// -------------------------------------------
 	// --------- STORING ORDER IN THE DB ---------
 	// -------------------------------------------
@@ -228,12 +252,12 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 
 	odr, err := entity.NewOrder(credentials.StoreID, orderData.ID, orderItems, entity.OrderStatus(orderData.Status))
 	if err != nil {
-		log.Println(err.Error())
+		o.logger.Error("Fail to generate the order entity", err, zap.String("order_id", orderData.ID))
 		return err
 	}
 
 	if err := o.repo.RegisterOrder(odr); err != nil {
-		log.Println(err.Error())
+		o.logger.Error("Fail to store the order", err, zap.String("order_id", orderData.ID))
 		return errors.New("couldn't store order")
 	}
 
@@ -242,7 +266,7 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 	// -------------------------------------------
 
 	if err := o.cache.SetOrder(odr); err != nil {
-		log.Println(err.Error())
+		o.logger.Warn("Fail to cache the order", zap.String("order_id", orderData.ID))
 	}
 	o.queue.DeleteOrderNotification(order.ReceiptHandle)
 	return nil

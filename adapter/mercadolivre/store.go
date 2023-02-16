@@ -5,18 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/Vractos/dolly/usecases/common"
+	"go.uber.org/zap"
 )
 
 // RegisterCredential implements common.MercadoLivre
 func (m *MercadoLivre) RegisterCredential(code string) (*common.MeliCredential, error) {
-	url := fmt.Sprintf("%s/oauth/token", m.Endpoint)
+	urlPath := fmt.Sprintf("%s/oauth/token", m.Endpoint)
 	bodyRequest := map[string]interface{}{
 		"client_id":     m.ClientId,
 		"client_secret": m.ClientSecret,
@@ -27,13 +26,15 @@ func (m *MercadoLivre) RegisterCredential(code string) (*common.MeliCredential, 
 
 	jsonBody, err := json.Marshal(bodyRequest)
 	if err != nil {
-		log.Printf("Failed to parse the issuer url: %v", err)
+		m.Logger.Error(
+			"Fail to encode the request body",
+			err,
+		)
 		return nil, err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest(http.MethodPost, urlPath, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		log.Println(err.Error())
 		return nil, err
 	}
 
@@ -41,21 +42,38 @@ func (m *MercadoLivre) RegisterCredential(code string) (*common.MeliCredential, 
 	req.Header.Add("Content-Type", "application/json")
 	resp, err := m.HttpClient.Do(req)
 	if err != nil {
-		log.Println(err.Error())
+		m.Logger.Error(
+			"Error to make a request to Mercado Livre",
+			err,
+			zap.String("path", "/"+urlPath),
+		)
 		return nil, err
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		b, _ := io.ReadAll(resp.Body)
-		log.Println("Error to register credentials: " + string(b))
-		return nil, errors.New(string(b))
+		registerCredentialsError := &MeliError{}
+		if err := json.NewDecoder(resp.Body).Decode(registerCredentialsError); err != nil {
+			m.Logger.Error(
+				"Error to decode response body",
+				err,
+			)
+			return nil, err
+		}
+		m.Logger.Warn(
+			"Couldn't retrieve the order",
+			zap.String("meli_message", registerCredentialsError.Message),
+			zap.String("meli_erro", registerCredentialsError.Error),
+			zap.Any("cause", registerCredentialsError.Cause),
+			zap.Int("status_code", resp.StatusCode),
+		)
+
+		return nil, errors.New("error to register credentials")
 	}
 
 	credentials := &Credentials{}
 	if err := json.NewDecoder(resp.Body).Decode(credentials); err != nil {
-		log.Println(err.Error())
 		return nil, err
 	}
 
@@ -70,7 +88,7 @@ func (m *MercadoLivre) RegisterCredential(code string) (*common.MeliCredential, 
 
 // RefreshCredentials implements common.MercadoLivre
 func (m *MercadoLivre) RefreshCredentials(refreshToken string) (*common.MeliCredential, error) {
-	url := fmt.Sprintf("%s/oauth/token", m.Endpoint)
+	urlPath := fmt.Sprintf("%s/oauth/token", m.Endpoint)
 	bodyRequest := map[string]interface{}{
 		"grant_type":    "refresh_token",
 		"client_id":     m.ClientId,
@@ -80,13 +98,15 @@ func (m *MercadoLivre) RefreshCredentials(refreshToken string) (*common.MeliCred
 
 	jsonBody, err := json.Marshal(bodyRequest)
 	if err != nil {
-		log.Printf("Failed to parse the issuer url: %v", err)
+		m.Logger.Error(
+			"Fail to encode the request body",
+			err,
+		)
 		return nil, err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest(http.MethodPost, urlPath, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		log.Println(err.Error())
 		return nil, err
 	}
 
@@ -94,20 +114,36 @@ func (m *MercadoLivre) RefreshCredentials(refreshToken string) (*common.MeliCred
 	req.Header.Add("Content-Type", "application/json")
 	resp, err := m.HttpClient.Do(req)
 	if err != nil {
-		log.Println(err.Error())
+		m.Logger.Error(
+			"Error to make a request to Mercado Livre",
+			err,
+			zap.String("path", "/"+urlPath),
+		)
 		return nil, err
 	}
 
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		b, _ := io.ReadAll(resp.Body)
-		log.Println("Error to refresh credentials: " + string(b))
-		return nil, errors.New(string(b))
+		refreshCredentialsError := &MeliError{}
+		if err := json.NewDecoder(resp.Body).Decode(refreshCredentialsError); err != nil {
+			m.Logger.Error(
+				"Error to decode response body",
+				err,
+			)
+			return nil, err
+		}
+		m.Logger.Warn(
+			"Couldn't retrieve the order",
+			zap.String("meli_message", refreshCredentialsError.Message),
+			zap.String("meli_erro", refreshCredentialsError.Error),
+			zap.Any("cause", refreshCredentialsError.Cause),
+			zap.Int("status_code", resp.StatusCode),
+		)
+		return nil, errors.New("fail to refresh credentials")
 	}
 
 	credentials := &Credentials{}
 	if err := json.NewDecoder(resp.Body).Decode(credentials); err != nil {
-		log.Println(err.Error())
 		return nil, err
 	}
 

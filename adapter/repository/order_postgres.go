@@ -3,20 +3,22 @@ package repository
 import (
 	"context"
 	"errors"
-	"log"
 
 	"github.com/Vractos/dolly/entity"
+	"github.com/Vractos/dolly/pkg/metrics"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.uber.org/zap"
 )
 
 type OrderPostgreSQL struct {
-	db *pgxpool.Pool
+	db     *pgxpool.Pool
+	logger metrics.Logger
 }
 
-func NewOrderPostgreSQL(db *pgxpool.Pool) *OrderPostgreSQL {
-	return &OrderPostgreSQL{db: db}
+func NewOrderPostgreSQL(db *pgxpool.Pool, logger metrics.Logger) *OrderPostgreSQL {
+	return &OrderPostgreSQL{db: db, logger: logger}
 }
 
 // RegisterOrder implements order.Repository
@@ -36,29 +38,27 @@ func (r *OrderPostgreSQL) RegisterOrder(o *entity.Order) error {
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
-			log.Println(pgErr.Message)
-			log.Println(pgErr.Code)
+			r.logger.Error(pgErr.Message, pgErr, zap.String("db_error_code", pgErr.Code))
 		}
 		return err
 	}
 
 	for _, i := range o.Items {
 		_, err := tx.Exec(ctx, `
-      INSERT INTO order_items(id, title, sku, quantity, order_id)
-      VALUES($1,$2,$3,$4,$5)
+    INSERT INTO order_items(id, title, sku, quantity, order_id)
+    VALUES($1,$2,$3,$4,$5)
     `, i.ID, i.Title, i.Sku, i.Quantity, o.ID)
 		if err != nil {
 			var pgErr *pgconn.PgError
 			if errors.As(err, &pgErr) {
-				log.Println(pgErr.Message)
-				log.Println(pgErr.Code)
+				r.logger.Error(pgErr.Message, pgErr, zap.String("db_error_code", pgErr.Code))
 			}
 			return err
 		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		log.Println(err.Error())
+		r.logger.Error("Error to commit order", err)
 		return errors.New("error to commit order")
 	}
 
@@ -71,20 +71,19 @@ func (r *OrderPostgreSQL) GetOrder(orderMarketplaceId string) (*entity.Order, er
 
 	err := r.db.QueryRow(context.Background(), `
 	SELECT
-    id,
-    store_id,
-    marketplace_id,
-    status
+  id,
+  store_id,
+  marketplace_id,
+  status
   FROM
-    orders
+  orders
   WHERE
   marketplace_id=$1
 	`, orderMarketplaceId).Scan(&order.ID, &order.StoreID, &order.MarketplaceID, &order.Status)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
-			log.Println(pgErr.Message)
-			log.Println(pgErr.Code)
+			r.logger.Error(pgErr.Message, pgErr, zap.String("db_error_code", pgErr.Code))
 			return nil, err
 		} else if err == pgx.ErrNoRows {
 			return nil, nil

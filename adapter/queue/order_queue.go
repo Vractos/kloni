@@ -3,31 +3,42 @@ package queue
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"errors"
 	"regexp"
 	"strconv"
 
+	"github.com/Vractos/dolly/pkg/metrics"
 	"github.com/Vractos/dolly/usecases/order"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
+	"go.uber.org/zap"
 )
 
 type OrderSQSQueue struct {
-	Client *sqs.Client
-	Url    string
+	client *sqs.Client
+	url    string
+	logger metrics.Logger
 }
 
-func NewOrderQueue(client *sqs.Client, url string) *OrderSQSQueue {
-	return &OrderSQSQueue{Client: client, Url: url}
+func NewOrderQueue(client *sqs.Client, url string, logger metrics.Logger) *OrderSQSQueue {
+	return &OrderSQSQueue{
+		client: client,
+		url:    url,
+		logger: logger,
+	}
 }
 
 // PostOrderNotification implements order.Queue
 func (q *OrderSQSQueue) PostOrderNotification(input order.OrderWebhookDtoInput) error {
 	msgBody, err := json.Marshal(input)
 	if err != nil {
-		log.Printf("Failed to marshal input into json: %v", err)
-		return err
+		q.logger.Error(
+			"Failed to marshal input into json",
+			err,
+			zap.String("notification_id", input.ID),
+		)
+		return errors.New("failed to handle input")
 	}
 
 	mgsInput := &sqs.SendMessageInput{
@@ -53,20 +64,23 @@ func (q *OrderSQSQueue) PostOrderNotification(input order.OrderWebhookDtoInput) 
 				StringValue: aws.String(input.Received),
 			},
 		},
-		QueueUrl:               &q.Url,
+		QueueUrl:               &q.url,
 		MessageBody:            aws.String(string(msgBody)),
 		MessageDeduplicationId: aws.String(input.ID),
 		MessageGroupId:         aws.String("order-notification"),
 	}
 
-	resp, err := q.Client.SendMessage(context.TODO(), mgsInput)
+	resp, err := q.client.SendMessage(context.TODO(), mgsInput)
 	if err != nil {
-		log.Println("Got an error sending the order message:")
-		log.Panicln(err)
+		q.logger.Error(
+			"Failure to send the order message",
+			err,
+			zap.String("notification_id", input.ID),
+		)
 		return err
 	}
 
-	log.Printf("Sent message with ID: %s", *resp.MessageId)
+	q.logger.Info("Sent message", zap.String("message_id", *resp.MessageId))
 	return nil
 }
 
@@ -76,15 +90,17 @@ func (q *OrderSQSQueue) ConsumeOrderNotification() []order.OrderMessage {
 		MessageAttributeNames: []string{
 			string(types.QueueAttributeNameAll),
 		},
-		QueueUrl:            &q.Url,
+		QueueUrl:            &q.url,
 		WaitTimeSeconds:     int32(20),
 		MaxNumberOfMessages: 10,
 	}
 
-	resp, err := q.Client.ReceiveMessage(context.TODO(), getMsgInput)
+	resp, err := q.client.ReceiveMessage(context.TODO(), getMsgInput)
 	if err != nil {
-		log.Println("Got an error receiving the order message")
-		log.Panicln(err)
+		q.logger.Error(
+			"Got an error receiving the order message",
+			err,
+		)
 		return nil
 	} else if resp.Messages == nil {
 		return nil
@@ -105,14 +121,17 @@ func (q *OrderSQSQueue) ConsumeOrderNotification() []order.OrderMessage {
 func (q *OrderSQSQueue) DeleteOrderNotification(receiptHandle string) error {
 
 	dMInput := &sqs.DeleteMessageInput{
-		QueueUrl:      &q.Url,
+		QueueUrl:      &q.url,
 		ReceiptHandle: aws.String(receiptHandle),
 	}
 
-	_, err := q.Client.DeleteMessage(context.TODO(), dMInput)
+	_, err := q.client.DeleteMessage(context.TODO(), dMInput)
 	if err != nil {
-		log.Println("Got an error deleting the order message:")
-		log.Println(err)
+		q.logger.Error(
+			"Got an error deleting the order message",
+			err,
+			zap.String("receipt_handle", receiptHandle),
+		)
 		return err
 	}
 
