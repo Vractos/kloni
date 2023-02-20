@@ -37,3 +37,8 @@ variable "private_subnet_route_table_name" {
   default = "dolly"
 }
 
+variable "my_public_ip" {
+  description = "Your public IP address"
+  type = string
+  sensitive = true
+}

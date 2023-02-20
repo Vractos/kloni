@@ -87,13 +87,61 @@ resource "aws_route_table_association" "private_subnet_route_table_association" 
   subnet_id = element(aws_subnet.private[*].id, count.index)
   route_table_id = aws_route_table.private_subnet_route_table.id
 }
+resource "aws_security_group" "server_security_group" {
+  name        = "server_security_group"
+  description = "Allow traffic"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description = "Allow all traffic through HTTP"
+    from_port = 80
+    to_port = 80
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    description = "Allow all traffic through HTTPS (TLS)"
+    from_port = 443
+    to_port = 443
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Allow SSH from my computer"
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+    cidr_blocks = ["${var.my_public_ip}/32"]
+  }
+
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "server_security_group"
+  }
+}
 
 resource "aws_security_group" "database_security_group" {
   name        = "database_security_group"
   description = "Allow Datababse traffic"
   vpc_id      = aws_vpc.main.id
 
+    ingress {
+    description     = "Allow Postgres traffic from only the server sg"
+    from_port       = "5432"
+    to_port         = "5432"
+    protocol        = "tcp"
+    security_groups = [aws_security_group.server_security_group.id]
+  }
+
   tags = {
     Name = "database_security_group"
-  }
+  } 
 }
