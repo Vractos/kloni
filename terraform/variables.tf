@@ -22,3 +22,13 @@ variable "db_password" {
   nullable = false
   sensitive = true
 }
+
+variable "public_ip" {
+  type = string
+  sensitive = true
+}
+
+variable "ssh_public_key" {
+  sensitive = true
+  type = string
+}

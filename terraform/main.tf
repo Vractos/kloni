@@ -14,6 +14,7 @@ provider "aws" {
 module "network" {
   source = "./modules/networking"
   environment = var.environment
+  my_public_ip = var.public_ip
 }
 
 module "database" {
@@ -33,4 +34,14 @@ module "queue" {
   environment = var.environment
   sqs_queue_name = "orders"
   sqs_queue_allowed_user = data.aws_iam_user.sdk_user.arn
+}
+
+module "computing" {
+  source = "./modules/computing"
+  environment = var.environment
+  eip_id = module.network.eip_id
+  ami_default_public_key = var.ssh_public_key
+  server_public_subnet = module.network.public_subnet
+  server_security_group = module.network.server_security_group_id
+  
 }
