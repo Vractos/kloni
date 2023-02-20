@@ -8,7 +8,7 @@ resource "aws_db_subnet_group" "default" {
   }
 }
 
-resource "aws_db_instance" "ṕostgres_db" {
+resource "aws_db_instance" "postgres_db" {
   identifier = var.db_name
   allocated_storage = 10
   db_name = var.db_name
