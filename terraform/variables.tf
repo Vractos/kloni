@@ -24,7 +24,7 @@ variable "db_password" {
 }
 
 variable "public_ip" {
-  type = string
+  type = list
   sensitive = true
 }
 

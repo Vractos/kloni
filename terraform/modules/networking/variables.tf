@@ -39,6 +39,6 @@ variable "private_subnet_route_table_name" {
 
 variable "my_public_ip" {
   description = "Your public IP address"
-  type = string
+  type = list
   sensitive = true
 }
