@@ -1,4 +1,16 @@
+# git
+.git
+.gitattributes
+.gitignore
+README.md
+CHANGELOG.md
+
+# docker
+docker-compose.yml
+Dockerfile
+
 .vscode
 frontend
 terraform
 .env
+.vercel
