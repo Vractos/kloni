@@ -115,6 +115,14 @@ resource "aws_security_group" "server_security_group" {
     cidr_blocks = var.my_public_ip
   }
 
+  ingress {
+    description = "Allow pgAdmin from my computer"
+    from_port = 5050
+    to_port = 5050
+    protocol = "tcp"
+    cidr_blocks = var.my_public_ip
+  }
+
   egress {
     description = "Allow all outbound traffic"
     from_port   = 0
