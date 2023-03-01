@@ -5,3 +5,4 @@ db_username = op://Personal/Dolly Dotenv/Terraform/db_username
 db_password = op://Personal/Dolly Dotenv/Terraform/db_password
 public_ip = op://Personal/Dolly Dotenv/Terraform/public_ip
 ssh_public_key = op://Personal/Dolly Dotenv/Terraform/ssh_public_key
+openvpn_template_url = op://Personal/Dolly Dotenv/Terraform/openvpn_template_url

@@ -45,3 +45,18 @@ module "computing" {
   server_security_group = module.network.server_security_group_id
   
 }
+
+resource "aws_cloudformation_stack" "network" {
+  name = "dolly-vpn"
+  template_url = var.openvpn_template_url
+  capabilities = ["CAPABILITY_IAM"]
+
+  parameters = {
+    KeyName = "dafault-key",
+    VpcId = module.network.vpc_id
+    SubnetId = module.network.public_subnet
+    InstanceType = "t2.micro"
+    InstanceName = "Dolly VPN"
+  }
+
+}

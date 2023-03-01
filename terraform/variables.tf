@@ -32,3 +32,8 @@ variable "ssh_public_key" {
   sensitive = true
   type = string
 }
+
+variable "openvpn_template_url" {
+  sensitive = true
+  type = string
+}
