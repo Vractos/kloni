@@ -4,13 +4,13 @@ services:
   dolly:
     container_name: dolly-server
     build: .
-    image: dolly
+    image: dolly-server
     logging:
       driver: loki
       options:
         loki-url: ${LOKI_URL}
     ports:
-      - 8080:8080
+      - 8080:80
     environment:
       - AUTH0_DOMAIN=${AUTH0_DOMAIN}
       - AUTH0_AUDIENCE=${AUTH0_AUDIENCE}

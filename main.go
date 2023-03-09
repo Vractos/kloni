@@ -157,8 +157,8 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	logger.Info("Listing on 8080")
-	err = http.ListenAndServe(":8080", r)
+	logger.Info("Listing on 80")
+	err = http.ListenAndServe(":80", r)
 	if err != nil {
 		logger.Panic(err.Error(), err)
 	}

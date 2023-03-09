@@ -16,7 +16,7 @@ WORKDIR /usr/src/app/
 
 RUN apk add --no-cache curl bash
 
-ENV APP_ENV=test
+ARG APP_ENV=test
 
 # Auth0 #
 ARG auth0_domain
@@ -56,11 +56,11 @@ ARG meli_endpoint
 ENV MELI_ENDPOINT ${meli_endpoint}
 
 # SQS #
-ARG ORDER_QUEUE_URL
-ENV ORDER_QUEUE_URL ${meli_order_url}
+ARG order_queue_url
+ENV ORDER_QUEUE_URL ${order_queue_url}
 
 COPY --from=builder /usr/src/app/bin/dolly ./
 
-EXPOSE 8080
+EXPOSE 80
 ENTRYPOINT [ "./dolly" ]
 
