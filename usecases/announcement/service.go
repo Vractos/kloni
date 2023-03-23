@@ -107,42 +107,46 @@ func (a *AnnouncementService) CloneAnnouncement(input CloneAnnouncementDtoInput)
 		return errors.New("error to clone the announcement - get root announcement")
 	}
 
-	newAnns := make([][2]entity.Announcement, len(input.Titles))
-	for i, t := range input.Titles {
+	newAnns := make([]entity.Announcement, len(input.Titles)+1)
+	classicAnn, err := entity.NewAnnouncement(ann)
+	if err != nil {
+		a.logger.Error("Error in the generation of a classic announcement during the cloning process", err, zap.String("announcement_id", ann.ID))
+		return err
+	}
+	classicAnn.GenerateClassic()
+	newAnns[0] = *classicAnn
+
+	for i := 0; i < len(input.Titles); i++ {
 		nAnn, err := entity.NewAnnouncement(ann)
 		if err != nil {
 			a.logger.Error("Error in the generation of a new announcement during the cloning process", err, zap.String("announcement_id", ann.ID))
 			return err
 		}
-		nAnn.ChangeTitle(t)
-		newAnns[i][0] = *nAnn
-		nAnn.GenerateClassic()
-		newAnns[i][1] = *nAnn
+		nAnn.ChangeTitle(input.Titles[i])
+		newAnns[i+1] = *nAnn
 	}
 
 	for _, ans := range newAnns {
-		for _, an := range ans {
-			jsonAnn, err := json.Marshal(an)
-			if err != nil {
-				a.logger.Error("Error to marshal announcement json", err, zap.String("announcement_id", input.RootID))
-				return errors.New("error to marshal announcement json")
-			}
+		jsonAnn, err := json.Marshal(ans)
+		if err != nil {
+			a.logger.Error("Error to marshal announcement json", err, zap.String("announcement_id", input.RootID))
+			return errors.New("error to marshal announcement json")
+		}
 
-			rAnn, err := a.meli.PublishAnnouncement(jsonAnn, credentials.MeliAccessToken)
-			if err != nil {
-				cErr := &AnnouncementError{
-					Message: "Error to publish an announcement",
-				}
-				a.logger.Error(cErr.Message, err, zap.String("announcement_id", input.RootID))
-				return errors.New("error to publish clone")
+		rAnn, err := a.meli.PublishAnnouncement(jsonAnn, credentials.MeliAccessToken)
+		if err != nil {
+			cErr := &AnnouncementError{
+				Message: "Error to publish an announcement",
 			}
+			a.logger.Error(cErr.Message, err, zap.String("announcement_id", input.RootID))
+			return errors.New("error to publish clone")
+		}
 
-			a.logger.Info("New clone", zap.String("new_announcement_id", *rAnn))
+		a.logger.Info("New clone", zap.String("new_announcement_id", *rAnn))
 
-			err = a.meli.AddDescription(ann.Description, *rAnn, credentials.MeliAccessToken)
-			if err != nil {
-				a.logger.Error("Error to add description", err, zap.String("announcement_id", *rAnn))
-			}
+		err = a.meli.AddDescription(ann.Description, *rAnn, credentials.MeliAccessToken)
+		if err != nil {
+			a.logger.Error("Error to add description", err, zap.String("announcement_id", *rAnn))
 		}
 	}
 
