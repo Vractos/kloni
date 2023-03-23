@@ -16,7 +16,8 @@ WORKDIR /usr/src/app/
 
 RUN apk add --no-cache curl bash
 
-ARG APP_ENV=test
+ARG app_env=compose
+ENV APP_ENV ${app_env}
 
 # Auth0 #
 ARG auth0_domain
@@ -58,6 +59,10 @@ ENV MELI_ENDPOINT ${meli_endpoint}
 # SQS #
 ARG order_queue_url
 ENV ORDER_QUEUE_URL ${order_queue_url}
+
+# AWS #
+ARG aws_region
+ENV AWS_REGION ${aws_region}
 
 COPY --from=builder /usr/src/app/bin/dolly ./
 

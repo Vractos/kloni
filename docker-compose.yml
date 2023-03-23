@@ -5,10 +5,10 @@ services:
     container_name: dolly-server
     build: .
     image: dolly-server
-    logging:
-      driver: loki
-      options:
-        loki-url: ${LOKI_URL}
+    # logging:
+    #   driver: loki
+    #   options:
+    #     loki-url: ${LOKI_URL}
     ports:
       - 8080:80
     environment:
@@ -24,6 +24,7 @@ services:
       - MELI_REDIRECT_URL=${MELI_REDIRECT_URL}
       - MELI_ENDPOINT=${MELI_ENDPOINT}
       - ORDER_QUEUE_URL=${ORDER_QUEUE_URL}
+      - AWS_REGION=${AWS_REGION}
     volumes:
       - ~/.aws:/root/.aws
     depends_on:

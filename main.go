@@ -52,7 +52,7 @@ func main() {
 	validate := validator.New()
 
 	// AWS SDK
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(os.Getenv("AWS_REGION")))
 	if err != nil {
 		logger.Panic("Failed to load config: "+err.Error(), err)
 	}
