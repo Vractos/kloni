@@ -63,7 +63,8 @@ resource "aws_sqs_queue_policy" "default" {
       },
       "Action": [
          "sqs:SendMessage",
-         "sqs:ReceiveMessage"
+         "sqs:ReceiveMessage",
+         "sqs:DeleteMessage"
       ],
       "Resource": "${aws_sqs_queue.sqs_fifo_queue.arn}"
    }]
@@ -86,7 +87,8 @@ resource "aws_sqs_queue_policy" "default-dll" {
       },
       "Action": [
          "sqs:SendMessage",
-         "sqs:ReceiveMessage"
+         "sqs:ReceiveMessage",
+         "sqs:DeleteMessage"
       ],
       "Resource": "${aws_sqs_queue.sqs_fifo_queue_deadletter.arn}"
    }]

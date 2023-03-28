@@ -16,7 +16,7 @@ WORKDIR /usr/src/app/
 
 RUN apk add --no-cache curl bash
 
-ARG app_env=compose
+ARG app_env
 ENV APP_ENV ${app_env}
 
 # Auth0 #
