@@ -153,3 +153,21 @@ resource "aws_security_group" "database_security_group" {
     Name = "database_security_group"
   } 
 }
+
+resource "aws_security_group" "redis_security_group" {
+  name        = "redis_security_group"
+  description = "Allow Redis traffic"
+  vpc_id      = aws_vpc.main.id
+
+    ingress {
+    description     = "Allow Redis traffic from only the server sg"
+    from_port       = "6379"
+    to_port         = "6379"
+    protocol        = "tcp"
+    security_groups = [aws_security_group.server_security_group.id]
+  }
+
+  tags = {
+    Name = "redis_security_group"
+  } 
+}

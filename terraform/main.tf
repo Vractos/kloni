@@ -46,6 +46,15 @@ module "computing" {
   
 }
 
+module "cache" {
+  depends_on = [
+    module.network
+  ]
+  source = "./modules/cache"
+  subnet_id = module.network.private_subnets[0]
+  redis_security_group_ids = module.network.redis_security_group_id
+}
+
 resource "aws_cloudformation_stack" "network" {
   name = "dolly-vpn"
   template_url = var.openvpn_template_url

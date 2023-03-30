@@ -25,6 +25,11 @@ output "database_security_group_id" {
   value = aws_security_group.database_security_group[*].id
 }
 
+output "redis_security_group_id" {
+  description = "Redis security group ID"
+  value = aws_security_group.redis_security_group[*].id
+}
+
 output "server_security_group_id" {
   description = "Server security group ID"
   value = aws_security_group.server_security_group.id
