@@ -12,6 +12,7 @@ services:
     ports:
       - 8080:80
     environment:
+      - APP_ENV=tet
       - AUTH0_DOMAIN=${AUTH0_DOMAIN}
       - AUTH0_AUDIENCE=${AUTH0_AUDIENCE}
       - POSTGRES_USER=${POSTGRES_USER}

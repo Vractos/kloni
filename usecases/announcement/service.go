@@ -8,6 +8,7 @@ import (
 	"github.com/Vractos/dolly/pkg/metrics"
 	"github.com/Vractos/dolly/usecases/common"
 	"github.com/Vractos/dolly/usecases/store"
+	"github.com/Vractos/dolly/utils"
 	"go.uber.org/zap"
 )
 
@@ -41,7 +42,26 @@ func (a *AnnouncementService) RetrieveAnnouncements(sku string, credentials stor
 	}
 
 	if len(annIDs) >= 20 {
-		// TODO Chunk slice
+		annIDsChunk := utils.Chunk(annIDs, 20)
+		anns := make([]common.MeliAnnouncement, len(annIDs))
+		for i, ids := range annIDsChunk {
+			annsRes, err := a.meli.GetAnnouncements(ids, credentials.MeliAccessToken)
+			if err != nil {
+				cErr := &AnnouncementError{
+					Message:       "Error to retrieve announcements",
+					IsAbleToRetry: true,
+				}
+				a.logger.Error(cErr.Message, err, zap.Strings("announcements_ids", annIDs))
+				return nil, cErr
+			}
+			start := i * 20
+			end := start + 20
+			if end >= len(anns) {
+				end = len(anns)
+			}
+			copy(anns[start:end], *annsRes)
+		}
+		return &anns, err
 	}
 
 	anns, err := a.meli.GetAnnouncements(annIDs, credentials.MeliAccessToken)
