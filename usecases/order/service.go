@@ -131,6 +131,10 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 
 	var anns []common.OrderItem
 	for _, item := range orderData.Items {
+		if item.Sku == "" {
+			o.logger.Warn("The product doesn't have sku", zap.String("order_id", order.OrderId), zap.String("announcement_id", item.ID))
+			continue
+		}
 		clones, err := o.announce.RetrieveAnnouncements(item.Sku, *credentials)
 		if err != nil {
 			var annErr *announcement.AnnouncementError
