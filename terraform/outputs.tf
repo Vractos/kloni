@@ -7,12 +7,6 @@ output "database_endpoint" {
   sensitive = true
   value = module.database.database_endpoint
 }
-
-output "database_port" {
-  description = "The port of the database"
-  value = module.database.database_port
-}
-
 output "server_public_ip" {
   value = module.network.server_public_ip
   sensitive = true

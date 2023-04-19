@@ -1,4 +1,3 @@
-environment = op://Personal/Dolly Dotenv/Terraform/environment
 region = op://Personal/Dolly Dotenv/Terraform/region
 sdk_user_name = op://Personal/Dolly Dotenv/Terraform/sdk_user_name
 db_username = op://Personal/Dolly Dotenv/Terraform/db_username

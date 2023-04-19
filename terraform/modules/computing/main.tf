@@ -1,5 +1,5 @@
 resource "aws_key_pair" "default_key" {
-  key_name   = "dafault-key"
+  key_name   = "${var.project}-key"
   public_key = var.ami_default_public_key
 
   tags = {
@@ -43,14 +43,14 @@ resource "aws_iam_role_policy" "sqs_access_policy" {
                 "sqs:ReceiveMessage",
                 "sqs:SendMessage"
             ],
-            Resource = "arn:aws:sqs:us-east-1:068065400013:*"
+            Resource = "arn:aws:sqs:${var.region}:${var.sdk_username}:*"
         }
     ]
   })
 }
 
 resource "aws_iam_instance_profile" "dolly_instance_profile" {
-  name = "dolly_server_profile"
+  name = "${var.project}_server_profile"
   role = aws_iam_role.ec2_sqs_role.name
 }
 
@@ -67,7 +67,6 @@ resource "aws_instance" "dolly_server" {
 
   tags = {
     Name        = "${var.instance_name} Server"
-    Environment = var.environment
   }
 }
 

@@ -8,10 +8,6 @@ variable "db_name" {
   default = "dolly"
 }
 
-variable "environment" {
-  type = string
-}
-
 variable "db_username" {
   type = string
   nullable = false
@@ -32,4 +28,9 @@ variable "final_snapshot_identifier" {
 variable "db_security_group_ids" {
   type = set(string)
   nullable = false
+}
+
+variable "project" {
+  type = string
+  default = "dolly"
 }

@@ -2,8 +2,7 @@ resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
 
   tags = {
-    Name = "${var.vpc_name}-vpc"
-    Environment = var.environment
+    Name = "${var.project}-vpc"
   }
 }
 
@@ -11,8 +10,7 @@ resource "aws_internet_gateway" "main_vpc_internet_gateway" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name = "${var.internet_gateway_name}-igw"
-    Environment = var.environment
+    Name = "${var.project}-igw"
   }
 }
 
@@ -20,8 +18,7 @@ resource "aws_eip" "elastic_ip" {
   vpc = true
   depends_on = [aws_internet_gateway.main_vpc_internet_gateway]
   tags = {
-    Name = "${var.elastic_ip_name}-eip"
-    Environment = var.environment
+    Name = "${var.projects}-eip"
   }
 }
 
@@ -33,8 +30,7 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
   
   tags = {
-    Name = "${var.public_subnet_name}-public-subnet"
-    Environment = var.environment
+    Name = "${var.project}-public-subnet"
   }
 }
 
@@ -48,8 +44,7 @@ resource "aws_subnet" "private" {
   map_public_ip_on_launch = false
   
   tags = {
-    Name = "${var.private_subnet_name}${count.index+1}-private-subnet"
-    Environment = var.environment
+    Name = "${var.project}${count.index+1}-private-subnet"
   }
 }
 
@@ -62,8 +57,7 @@ resource "aws_route_table" "public_subnet_route_table" {
   }
 
   tags = {
-    Name = "${var.public_subnet_route_table_name}-public-subnet-route-table"
-    Environment = var.environment
+    Name = "${var.project}-public-subnet-route-table"
   }
 }
 
@@ -71,8 +65,7 @@ resource "aws_route_table" "private_subnet_route_table" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name = "${var.private_subnet_route_table_name}-private-subnet-route-table"
-    Environment = var.environment
+    Name = "${var.project}-private-subnet-route-table"
   }
 }
 
@@ -115,14 +108,6 @@ resource "aws_security_group" "server_security_group" {
     cidr_blocks = var.my_public_ip
   }
 
-  ingress {
-    description = "Allow pgAdmin from my computer"
-    from_port = 5050
-    to_port = 5050
-    protocol = "tcp"
-    cidr_blocks = var.my_public_ip
-  }
-
   egress {
     description = "Allow all outbound traffic"
     from_port   = 0
@@ -132,7 +117,7 @@ resource "aws_security_group" "server_security_group" {
   }
 
   tags = {
-    Name = "server_security_group"
+    Name = "${var.project}_server_security_group"
   }
 }
 
@@ -150,7 +135,7 @@ resource "aws_security_group" "database_security_group" {
   }
 
   tags = {
-    Name = "database_security_group"
+    Name = "${var.project}_database_security_group"
   } 
 }
 
@@ -168,6 +153,6 @@ resource "aws_security_group" "redis_security_group" {
   }
 
   tags = {
-    Name = "redis_security_group"
+    Name = "${var.project}redis_security_group"
   } 
 }
