@@ -1,5 +1,5 @@
 resource "aws_key_pair" "default_key" {
-  key_name   = "${var.project}-key"
+  key_name   = "dafault-key" // it's wrong
   public_key = var.ami_default_public_key
 
   tags = {
@@ -43,7 +43,7 @@ resource "aws_iam_role_policy" "sqs_access_policy" {
                 "sqs:ReceiveMessage",
                 "sqs:SendMessage"
             ],
-            Resource = "arn:aws:sqs:${var.region}:${var.sdk_username}:*"
+            Resource = "arn:aws:sqs:${var.region}:${var.sdk_account_id}:*"
         }
     ]
   })

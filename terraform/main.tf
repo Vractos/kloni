@@ -12,73 +12,99 @@ provider "aws" {
   default_tags {
     tags = {
       Environment = "${terraform.workspace}"
-      Project = var.project
+      Project     = var.project
     }
   }
 }
 
 module "network" {
-  count = (terraform.workspace != "dev") ? 1 : 0
   source       = "./modules/networking"
-  project = var.project
+  count        = (terraform.workspace != "dev") ? 1 : 0
+  project      = var.project
   my_public_ip = var.public_ip
 }
 
+moved {
+  from = module.network
+  to   = module.network[0]
+}
+
+locals {
+  network_outputs = length(module.network) > 0 ? {
+    vpc_id                     = module.network[0].vpc_id
+    eip_id                     = module.network[0].eip_id
+    server_public_ip           = module.network[0].server_public_ip
+    private_subnets            = module.network[0].private_subnets
+    public_subnet              = module.network[0].public_subnet
+    database_security_group_id = module.network[0].database_security_group_id
+    redis_security_group_id    = module.network[0].redis_security_group_id
+    server_security_group_id   = module.network[0].server_security_group_id
+    } : {
+    vpc_id                     = null
+    eip_id                     = null
+    server_public_ip           = null
+    private_subnets            = null
+    public_subnet              = null
+    database_security_group_id = null
+    redis_security_group_id    = null
+    server_security_group_id   = null
+  }
+}
+
 module "database" {
-  count = (terraform.workspace != "dev") ? 1 : 0
+  source = "./modules/database"
+  count  = (terraform.workspace != "dev") ? 1 : 0
   depends_on = [
     module.network
   ]
-  project = var.project
-  source                = "./modules/database"
-  subnet_ids            = module.network.private_subnets
+  project               = var.project
+  subnet_ids            = local.network_outputs.private_subnets
   db_username           = var.db_username
   db_password           = var.db_password
-  db_security_group_ids = module.network.database_security_group_id
+  db_security_group_ids = local.network_outputs.database_security_group_id
+}
+
+moved {
+  from = module.database
+  to   = module.database[0]
 }
 
 module "queue" {
   source                 = "./modules/queue"
-  project = var.project
-  sqs_queue_name         = "orders"
+  project                = var.project
+  sqs_queue_name                  = (terraform.workspace == "prod") ? "orders" : "order-${terraform.workspace}"
   sqs_queue_allowed_user = data.aws_iam_user.sdk_user.arn
 }
 
 module "computing" {
-  project = var.project
-  count = (terraform.workspace != "dev") ? 1 : 0
-  sdk_username = data.aws_iam_user.sdk_user.user_name
   source                 = "./modules/computing"
-  eip_id                 = module.network.eip_id
+  project                = var.project
+  count                  = (terraform.workspace != "dev") ? 1 : 0
+  sdk_account_id         = split(":", data.aws_iam_user.sdk_user.arn)[4]
+  eip_id                 = local.network_outputs.eip_id
   ami_default_public_key = var.ssh_public_key
-  server_public_subnet   = module.network.public_subnet
-  server_security_group  = module.network.server_security_group_id
+  server_public_subnet   = local.network_outputs.public_subnet
+  server_security_group  = local.network_outputs.server_security_group_id
+  region                 = var.region
+}
 
+moved {
+  from = module.computing
+  to   = module.computing[0]
 }
 
 module "cache" {
-  count = (terraform.workspace != "dev") ? 1 : 0
+  source  = "./modules/cache"
+  count   = (terraform.workspace != "dev") ? 1 : 0
   project = var.project
   depends_on = [
     module.network
   ]
-  source                   = "./modules/cache"
-  subnet_id                = module.network.private_subnets[0]
-  redis_security_group_ids = module.network.redis_security_group_id
+  subnet_id                = local.network_outputs.private_subnets[0]
+  redis_security_group_ids = local.network_outputs.redis_security_group_id
 }
 
-resource "aws_cloudformation_stack" "network" {
-  count = (terraform.workspace == "prod") ? 1 : 0
-  name         = "dolly-vpn"
-  template_url = var.openvpn_template_url
-  capabilities = ["CAPABILITY_IAM"]
-
-  parameters = {
-    KeyName      = "dafault-key",
-    VpcId        = module.network.vpc_id
-    SubnetId     = module.network.public_subnet
-    InstanceType = "t2.micro"
-    InstanceName = "Dolly VPN"
-  }
-
+moved {
+  from = module.cache
+  to   = module.cache[0]
 }

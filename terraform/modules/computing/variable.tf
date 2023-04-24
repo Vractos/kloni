@@ -9,7 +9,7 @@ variable "instance_name" {
   default = "dolly"
 }
 
-variable "sdk_username" {
+variable "sdk_account_id" {
   type = string
   nullable = false
 }
@@ -35,4 +35,9 @@ variable "server_security_group" {
 variable "project" {
   type = string
   default = "dolly"
+}
+
+variable "region" {
+  type = string
+  default = "us-east-1"
 }

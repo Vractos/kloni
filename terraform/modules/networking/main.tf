@@ -18,7 +18,7 @@ resource "aws_eip" "elastic_ip" {
   vpc = true
   depends_on = [aws_internet_gateway.main_vpc_internet_gateway]
   tags = {
-    Name = "${var.projects}-eip"
+    Name = "${var.project}-eip"
   }
 }
 

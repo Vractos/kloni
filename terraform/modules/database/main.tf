@@ -1,5 +1,6 @@
 resource "aws_db_subnet_group" "default" {
-  name = var.db_name
+  # name = var.db_name
+  name = "main"
   subnet_ids = var.subnet_ids
 
   tags = {
