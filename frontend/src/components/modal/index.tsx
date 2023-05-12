@@ -74,7 +74,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, announcementId, handleClose }) =>
 
   return (
     <Transition.Root appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-10" initialFocus={cancelButtonRef} onClose={() => closeModal()}>
+      <Dialog as="div" className="relative z-10" initialFocus={cancelButtonRef} static onClose={() => null}>
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
