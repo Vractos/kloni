@@ -2,6 +2,8 @@ package entity
 
 import (
 	"testing"
+
+	"github.com/google/uuid"
 )
 
 func TestStore(t *testing.T) {
@@ -13,7 +15,7 @@ func TestStore(t *testing.T) {
 			t.Fatalf("unexpected error creating store: %v", err)
 		}
 
-		if s.ID.String() == "" {
+		if s.ID == uuid.Nil {
 			t.Errorf("got %v, want not nil", s.ID)
 		}
 		if s.Email != email {

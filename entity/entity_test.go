@@ -1,11 +1,15 @@
 package entity
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/google/uuid"
+)
 
 func TestEntity(t *testing.T) {
 	t.Run("generate a new ID", func(t *testing.T) {
 		e := NewID()
-		if e.String() == "" {
+		if e == uuid.Nil {
 			t.Errorf("got %v, want not nil", e)
 		}
 	})
