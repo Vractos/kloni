@@ -10,6 +10,4 @@ func TestRegisterStore(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	mockStoreRepo := NewMockRepository(ctrl)
-	mockStoreRepo.EXPECT
-
 }

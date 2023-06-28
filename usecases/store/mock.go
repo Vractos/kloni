@@ -2,14 +2,13 @@
 // Source: usecases/store/interface.go
 
 // Package mock_store is a generated GoMock package.
-package mock_store
+package store
 
 import (
 	reflect "reflect"
 
 	entity "github.com/Vractos/dolly/entity"
 	common "github.com/Vractos/dolly/usecases/common"
-	store "github.com/Vractos/dolly/usecases/store"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -37,10 +36,10 @@ func (m *MockUseCase) EXPECT() *MockUseCaseMockRecorder {
 }
 
 // RefreshMeliCredential mocks base method.
-func (m *MockUseCase) RefreshMeliCredential(storeId entity.ID, refreshToken string) (*store.Credentials, error) {
+func (m *MockUseCase) RefreshMeliCredential(storeId entity.ID, refreshToken string) (*Credentials, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RefreshMeliCredential", storeId, refreshToken)
-	ret0, _ := ret[0].(*store.Credentials)
+	ret0, _ := ret[0].(*Credentials)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -52,7 +51,7 @@ func (mr *MockUseCaseMockRecorder) RefreshMeliCredential(storeId, refreshToken i
 }
 
 // RegisterMeliCredentials mocks base method.
-func (m *MockUseCase) RegisterMeliCredentials(input store.RegisterMeliCredentialsDtoInput) error {
+func (m *MockUseCase) RegisterMeliCredentials(input RegisterMeliCredentialsDtoInput) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterMeliCredentials", input)
 	ret0, _ := ret[0].(error)
@@ -66,7 +65,7 @@ func (mr *MockUseCaseMockRecorder) RegisterMeliCredentials(input interface{}) *g
 }
 
 // RegisterStore mocks base method.
-func (m *MockUseCase) RegisterStore(input store.RegisterStoreDtoInput) (entity.ID, error) {
+func (m *MockUseCase) RegisterStore(input RegisterStoreDtoInput) (entity.ID, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterStore", input)
 	ret0, _ := ret[0].(entity.ID)
@@ -81,10 +80,10 @@ func (mr *MockUseCaseMockRecorder) RegisterStore(input interface{}) *gomock.Call
 }
 
 // RetrieveMeliCredentialsFromMeliUserID mocks base method.
-func (m *MockUseCase) RetrieveMeliCredentialsFromMeliUserID(id string) (*store.Credentials, error) {
+func (m *MockUseCase) RetrieveMeliCredentialsFromMeliUserID(id string) (*Credentials, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RetrieveMeliCredentialsFromMeliUserID", id)
-	ret0, _ := ret[0].(*store.Credentials)
+	ret0, _ := ret[0].(*Credentials)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -96,10 +95,10 @@ func (mr *MockUseCaseMockRecorder) RetrieveMeliCredentialsFromMeliUserID(id inte
 }
 
 // RetrieveMeliCredentialsFromStoreID mocks base method.
-func (m *MockUseCase) RetrieveMeliCredentialsFromStoreID(id entity.ID) (*store.Credentials, error) {
+func (m *MockUseCase) RetrieveMeliCredentialsFromStoreID(id entity.ID) (*Credentials, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RetrieveMeliCredentialsFromStoreID", id)
-	ret0, _ := ret[0].(*store.Credentials)
+	ret0, _ := ret[0].(*Credentials)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
