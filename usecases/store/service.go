@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/Vractos/dolly/entity"
-	"github.com/Vractos/dolly/pkg/metrics"
 	"github.com/Vractos/dolly/usecases/common"
 	"go.uber.org/zap"
 )
@@ -12,10 +11,10 @@ import (
 type StoreService struct {
 	repo   Repository
 	meli   common.MercadoLivre
-	logger metrics.Logger
+	logger common.Logger
 }
 
-func NewStoreService(repository Repository, mercadolivre common.MercadoLivre, logger metrics.Logger) *StoreService {
+func NewStoreService(repository Repository, mercadolivre common.MercadoLivre, logger common.Logger) *StoreService {
 	return &StoreService{
 		repo:   repository,
 		meli:   mercadolivre,
