@@ -8,7 +8,9 @@ import (
 	common "github.com/Vractos/dolly/usecases/common"
 	common_mock "github.com/Vractos/dolly/usecases/common/mock"
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 func TestStoreUseCase(t *testing.T) {
@@ -17,7 +19,8 @@ func TestStoreUseCase(t *testing.T) {
 	mockStoreRepo := NewMockRepository(ctrl)
 	mockMercadoLivre := common_mock.NewMockMercadoLivre(ctrl)
 	mockLogger := common_mock.NewMockLogger(ctrl)
-	mockUseCase := NewMockUseCase(ctrl)
+
+	storeService := NewStoreService(mockStoreRepo, mockMercadoLivre, mockLogger)
 
 	t.Run("register store", func(t *testing.T) {
 		storeInput := RegisterStoreDtoInput{
@@ -32,7 +35,6 @@ func TestStoreUseCase(t *testing.T) {
 
 		mockStoreRepo.EXPECT().Create(gomock.AssignableToTypeOf(str)).Return(str.ID, nil)
 
-		storeService := NewStoreService(mockStoreRepo, mockMercadoLivre, mockLogger)
 		store, err := storeService.RegisterStore(storeInput)
 		if err != nil {
 			t.Errorf("Error: %v", err)
@@ -51,7 +53,6 @@ func TestStoreUseCase(t *testing.T) {
 		mockMercadoLivre.EXPECT().RegisterCredential(inputMeliCredentials.Code).Return(&common.MeliCredential{}, nil)
 		mockStoreRepo.EXPECT().RegisterMeliCredential(inputMeliCredentials.Store, gomock.AssignableToTypeOf(&common.MeliCredential{})).Return(nil)
 
-		storeService := NewStoreService(mockStoreRepo, mockMercadoLivre, mockLogger)
 		err := storeService.RegisterMeliCredentials(inputMeliCredentials)
 		if err != nil {
 			t.Errorf("Error: %v", err)
@@ -60,22 +61,164 @@ func TestStoreUseCase(t *testing.T) {
 
 	t.Run("retrieve meli credentials from store id", func(t *testing.T) {
 		storeId := entity.ID(uuid.New())
-		credentials := common.MeliCredential{
+		credentials := &common.MeliCredential{
 			AccessToken:  "test-access-token",
-			ExpiresIn:    21600,
+			ExpiresIn:    21666,
 			UserID:       "test-user-id",
 			RefreshToken: "test-refresh-token",
-			UpdatedAt:    time.Now(),
+			UpdatedAt:    time.Now().UTC(),
 		}
 
-		mockStoreRepo.EXPECT().RetrieveMeliCredentialsFromStoreID(storeId).Return(&credentials, nil)
-		mockUseCase.EXPECT().RefreshMeliCredential(storeId, credentials.RefreshToken).Return(&Credentials{}, nil).Times(0)
+		expectedCredentials := &Credentials{
+			StoreID:         storeId,
+			MeliAccessToken: "test-access-token",
+			MeliUserID:      "test-user-id",
+		}
 
-		storeService := NewStoreService(mockStoreRepo, mockMercadoLivre, mockLogger)
-		_, err := storeService.RetrieveMeliCredentialsFromStoreID(storeId)
+		mockStoreRepo.EXPECT().RetrieveMeliCredentialsFromStoreID(storeId).Return(credentials, nil)
+
+		cred, err := storeService.RetrieveMeliCredentialsFromStoreID(storeId)
 		if err != nil {
 			t.Errorf("Error: %v", err)
 		}
+		if !cmp.Equal(cred, expectedCredentials) {
+			t.Errorf("Error retrieving credentials. diff: %v", cmp.Diff(cred, expectedCredentials))
+		}
+	})
 
+	t.Run("retrieve meli credentials from store id with expired credentials", func(t *testing.T) {
+		storeId := entity.ID(uuid.New())
+		credentials := &common.MeliCredential{
+			AccessToken:  "test-access-token",
+			ExpiresIn:    21666,
+			UserID:       "test-user-id",
+			RefreshToken: "test-refresh-token",
+			UpdatedAt:    time.Now().UTC().Add(-8 * time.Hour),
+		}
+
+		refreshedCredentials := common.MeliCredential{
+			AccessToken:  "test-access-token-refreshed",
+			ExpiresIn:    21666,
+			UserID:       credentials.UserID,
+			RefreshToken: "test-refresh-token",
+			UpdatedAt:    time.Now().UTC(),
+		}
+
+		expectedCredentials := &Credentials{
+			StoreID:         storeId,
+			MeliAccessToken: "test-access-token-refreshed",
+			MeliUserID:      "test-user-id",
+		}
+
+		mockStoreRepo.EXPECT().RetrieveMeliCredentialsFromStoreID(storeId).Return(credentials, nil)
+		mockMercadoLivre.EXPECT().RefreshCredentials(credentials.RefreshToken).Return(&refreshedCredentials, nil)
+		mockStoreRepo.EXPECT().UpdateMeliCredentials(storeId, &refreshedCredentials)
+		mockLogger.EXPECT().Info("Meli's credentials were updated", zap.String("store_id", storeId.String()))
+
+		cred, err := storeService.RetrieveMeliCredentialsFromStoreID(storeId)
+		if err != nil {
+			t.Errorf("Error: %v", err)
+		}
+		if !cmp.Equal(cred, expectedCredentials) {
+			t.Errorf("Error refreshing and retrieving credentials. diff: %v", cmp.Diff(cred, expectedCredentials))
+		}
+	})
+
+	t.Run("retrieve meli credentials from meli user id", func(t *testing.T) {
+		storeId := entity.ID(uuid.New())
+		id := "test-user-id"
+		credentials := &common.MeliCredential{
+			AccessToken:  "test-access-token",
+			ExpiresIn:    21666,
+			UserID:       id,
+			RefreshToken: "test-refresh-token",
+			UpdatedAt:    time.Now().UTC(),
+		}
+
+		expectedCredentials := &Credentials{
+			StoreID:         storeId,
+			MeliAccessToken: "test-access-token",
+			MeliUserID:      id,
+		}
+
+		mockStoreRepo.EXPECT().RetrieveMeliCredentialsFromMeliUserID(id).Return(&storeId, credentials, nil)
+
+		cred, err := storeService.RetrieveMeliCredentialsFromMeliUserID(id)
+		if err != nil {
+			t.Errorf("Error: %v", err)
+		}
+		if !cmp.Equal(cred, expectedCredentials) {
+			t.Errorf("Error retrieving credentials. diff: %v", cmp.Diff(cred, expectedCredentials))
+		}
+	})
+
+	t.Run("retrieve meli credentials from meli user id with expired credentials", func(t *testing.T) {
+		storeId := entity.ID(uuid.New())
+		id := "test-user-id"
+		credentials := &common.MeliCredential{
+			AccessToken:  "test-access-token",
+			ExpiresIn:    21666,
+			UserID:       id,
+			RefreshToken: "test-refresh-token",
+			UpdatedAt:    time.Now().UTC().Add(-8 * time.Hour),
+		}
+
+		refreshedCredentials := common.MeliCredential{
+			AccessToken:  "test-access-token-refreshed",
+			ExpiresIn:    21666,
+			UserID:       id,
+			RefreshToken: "test-refresh-token",
+			UpdatedAt:    time.Now().UTC(),
+		}
+
+		expectedCredentials := &Credentials{
+			StoreID:         storeId,
+			MeliAccessToken: "test-access-token-refreshed",
+			MeliUserID:      id,
+		}
+
+		mockStoreRepo.EXPECT().RetrieveMeliCredentialsFromMeliUserID(id).Return(&storeId, credentials, nil)
+		mockMercadoLivre.EXPECT().RefreshCredentials(credentials.RefreshToken).Return(&refreshedCredentials, nil)
+		mockStoreRepo.EXPECT().UpdateMeliCredentials(storeId, &refreshedCredentials)
+		mockLogger.EXPECT().Info("Meli's credentials were updated", zap.String("store_id", storeId.String()))
+
+		cred, err := storeService.RetrieveMeliCredentialsFromMeliUserID(id)
+		if err != nil {
+			t.Errorf("Error: %v", err)
+		}
+		if !cmp.Equal(cred, expectedCredentials) {
+			t.Errorf("Error refreshing and retrieving credentials. diff: %v", cmp.Diff(cred, expectedCredentials))
+		}
+	})
+
+	t.Run("refresh meli credentials", func(t *testing.T) {
+		storeId := entity.ID(uuid.New())
+		refreshToken := "test-refresh-token"
+
+		refreshedCredentials := common.MeliCredential{
+			AccessToken:  "test-access-token-refreshed",
+			ExpiresIn:    21666,
+			UserID:       "test-user-id",
+			RefreshToken: "test-refresh-token",
+			UpdatedAt:    time.Now().UTC(),
+		}
+
+		expectedCredentials := &Credentials{
+			StoreID:         storeId,
+			MeliAccessToken: "test-access-token-refreshed",
+			MeliUserID:      "test-user-id",
+		}
+
+		mockMercadoLivre.EXPECT().RefreshCredentials(refreshToken).Return(&refreshedCredentials, nil)
+		mockStoreRepo.EXPECT().UpdateMeliCredentials(storeId, &refreshedCredentials)
+		mockLogger.EXPECT().Info("Meli's credentials were updated", zap.String("store_id", storeId.String()))
+
+		cred, err := storeService.RefreshMeliCredential(storeId, refreshToken)
+		if err != nil {
+			t.Errorf("Error: %v", err)
+		}
+		if !cmp.Equal(cred, expectedCredentials) {
+			t.Errorf("Error refreshing and retrieving credentials. diff: %v", cmp.Diff(cred, expectedCredentials))
+		}
 	})
 }
