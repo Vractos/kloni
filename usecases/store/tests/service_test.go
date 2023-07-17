@@ -7,6 +7,8 @@ import (
 	"github.com/Vractos/dolly/entity"
 	common "github.com/Vractos/dolly/usecases/common"
 	common_mock "github.com/Vractos/dolly/usecases/common/mock"
+	"github.com/Vractos/dolly/usecases/store"
+	"github.com/Vractos/dolly/usecases/store/mock"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
@@ -16,14 +18,14 @@ import (
 func TestStoreUseCase(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	mockStoreRepo := NewMockRepository(ctrl)
+	mockStoreRepo := mock_store.NewMockRepository(ctrl)
 	mockMercadoLivre := common_mock.NewMockMercadoLivre(ctrl)
 	mockLogger := common_mock.NewMockLogger(ctrl)
 
-	storeService := NewStoreService(mockStoreRepo, mockMercadoLivre, mockLogger)
+	storeService := store.NewStoreService(mockStoreRepo, mockMercadoLivre, mockLogger)
 
 	t.Run("register store", func(t *testing.T) {
-		storeInput := RegisterStoreDtoInput{
+		storeInput := store.RegisterStoreDtoInput{
 			Name:  "Test Store",
 			Email: "store@teststore.xyz",
 		}
@@ -45,7 +47,7 @@ func TestStoreUseCase(t *testing.T) {
 	})
 
 	t.Run("register meli credentials", func(t *testing.T) {
-		inputMeliCredentials := RegisterMeliCredentialsDtoInput{
+		inputMeliCredentials := store.RegisterMeliCredentialsDtoInput{
 			Store: entity.ID(uuid.New()),
 			Code:  "test-code",
 		}
@@ -69,7 +71,7 @@ func TestStoreUseCase(t *testing.T) {
 			UpdatedAt:    time.Now().UTC(),
 		}
 
-		expectedCredentials := &Credentials{
+		expectedCredentials := &store.Credentials{
 			StoreID:         storeId,
 			MeliAccessToken: "test-access-token",
 			MeliUserID:      "test-user-id",
@@ -104,7 +106,7 @@ func TestStoreUseCase(t *testing.T) {
 			UpdatedAt:    time.Now().UTC(),
 		}
 
-		expectedCredentials := &Credentials{
+		expectedCredentials := &store.Credentials{
 			StoreID:         storeId,
 			MeliAccessToken: "test-access-token-refreshed",
 			MeliUserID:      "test-user-id",
@@ -135,7 +137,7 @@ func TestStoreUseCase(t *testing.T) {
 			UpdatedAt:    time.Now().UTC(),
 		}
 
-		expectedCredentials := &Credentials{
+		expectedCredentials := &store.Credentials{
 			StoreID:         storeId,
 			MeliAccessToken: "test-access-token",
 			MeliUserID:      id,
@@ -171,7 +173,7 @@ func TestStoreUseCase(t *testing.T) {
 			UpdatedAt:    time.Now().UTC(),
 		}
 
-		expectedCredentials := &Credentials{
+		expectedCredentials := &store.Credentials{
 			StoreID:         storeId,
 			MeliAccessToken: "test-access-token-refreshed",
 			MeliUserID:      id,
@@ -203,7 +205,7 @@ func TestStoreUseCase(t *testing.T) {
 			UpdatedAt:    time.Now().UTC(),
 		}
 
-		expectedCredentials := &Credentials{
+		expectedCredentials := &store.Credentials{
 			StoreID:         storeId,
 			MeliAccessToken: "test-access-token-refreshed",
 			MeliUserID:      "test-user-id",

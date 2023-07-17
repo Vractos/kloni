@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/Vractos/dolly/entity"
-	"github.com/Vractos/dolly/pkg/metrics"
 	"github.com/Vractos/dolly/usecases/announcement"
 	"github.com/Vractos/dolly/usecases/common"
 	"github.com/Vractos/dolly/usecases/store"
@@ -19,7 +18,7 @@ type OrderService struct {
 	announce announcement.UseCase
 	repo     Repository
 	cache    Cache
-	logger   metrics.Logger
+	logger   common.Logger
 }
 
 func NewOrderService(
@@ -29,7 +28,7 @@ func NewOrderService(
 	announceUseCase announcement.UseCase,
 	repository Repository,
 	cache Cache,
-	logger metrics.Logger,
+	logger common.Logger,
 ) *OrderService {
 	return &OrderService{
 		queue:    queue,
