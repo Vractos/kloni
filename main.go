@@ -101,7 +101,7 @@ func main() {
 		announceService,
 		orderRepo,
 		orderCache,
-		*logger,
+		logger,
 	)
 
 	// Pull messages from queue
