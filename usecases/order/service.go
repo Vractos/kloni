@@ -56,6 +56,9 @@ func (o *OrderService) ProcessWebhook(input OrderWebhookDtoInput) error {
 	return nil
 }
 
+// removeDuplicateItens removes duplicate items from the given slice of OrderItem pointers.
+// It modifies the original slice by removing duplicates and summing their quantities.
+// The function uses the Sku field of each OrderItem to determine if it is a duplicate.
 func removeDuplicateItens(items *[]common.OrderItem) {
 	var unique []common.OrderItem
 	type key struct{ Sku string }
@@ -274,3 +277,6 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 	o.queue.DeleteOrderNotification(order.ReceiptHandle)
 	return nil
 }
+
+// Exports for testing purposes
+var RemoveDuplicateItensTest = removeDuplicateItens
