@@ -82,7 +82,7 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 
 	status, err := o.cache.GetOrder(order.OrderId)
 	if err != nil {
-		o.logger.Warn("Fail to retrieve order cache", zap.String("order_id", order.OrderId), zap.Error(err))
+		o.logger.Warn("Fail to retrieve order from cache", zap.String("order_id", order.OrderId), zap.Error(err))
 	}
 
 	if status != nil {

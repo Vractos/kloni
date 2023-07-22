@@ -1,6 +1,7 @@
 package order
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 type OrderMatcher struct {
@@ -161,41 +163,151 @@ func TestOrderUseCase(t *testing.T) {
 			t.Errorf("Error processing order: %v", err)
 		}
 	})
+
+	t.Run("process a new order - order already exists on cache", func(t *testing.T) {
+		orderMessage := order.OrderMessage{
+			Store:         "1",
+			OrderId:       "20210101000000",
+			Attempts:      0,
+			ReceiptHandle: "test-receipt-handle",
+		}
+
+		orderStatus := entity.Paid
+
+		mockOrderCache.EXPECT().GetOrder(orderMessage.OrderId).Return(&orderStatus, nil)
+		mockOrderQueue.EXPECT().DeleteOrderNotification(orderMessage.ReceiptHandle).Return(nil)
+
+		err := orderService.ProcessOrder(orderMessage)
+		if err != nil {
+			t.Errorf("Error processing order: %v", err)
+		}
+	})
+
+	t.Run("process a new order - order already exists on db", func(t *testing.T) {
+		orderMessage := order.OrderMessage{
+			Store:         "1",
+			OrderId:       "20210101000000",
+			Attempts:      0,
+			ReceiptHandle: "test-receipt-handle",
+		}
+
+		mockOrderCache.EXPECT().GetOrder(orderMessage.OrderId).Return(nil, nil)
+		mockOrderRepo.EXPECT().GetOrder(orderMessage.OrderId).Return(&entity.Order{}, nil)
+		mockOrderQueue.EXPECT().DeleteOrderNotification(orderMessage.ReceiptHandle).Return(nil)
+
+		err := orderService.ProcessOrder(orderMessage)
+		if err != nil {
+			t.Errorf("Error processing order: %v", err)
+		}
+	})
 }
 
-// func TestOrderUseCaseErros(t *testing.T) {
-//   ctrl := gomock.NewController(t)
+func TestOrderUseCaseErros(t *testing.T) {
+	ctrl := gomock.NewController(t)
 
-// 	mockOrderQueue := mock_order.NewMockQueue(ctrl)
-// 	mockMercadoLivre := common_mock.NewMockMercadoLivre(ctrl)
-// 	mockStoreUseCase := mock_store.NewMockUseCase(ctrl)
-// 	mockAnnUseCase := mock_announcement.NewMockUseCase(ctrl)
-// 	mockOrderRepo := mock_order.NewMockRepository(ctrl)
-// 	mockOrderCache := mock_order.NewMockCache(ctrl)
-// 	mockLogger := common_mock.NewMockLogger(ctrl)
+	mockOrderQueue := mock_order.NewMockQueue(ctrl)
+	mockMercadoLivre := common_mock.NewMockMercadoLivre(ctrl)
+	mockStoreUseCase := mock_store.NewMockUseCase(ctrl)
+	mockAnnUseCase := mock_announcement.NewMockUseCase(ctrl)
+	mockOrderRepo := mock_order.NewMockRepository(ctrl)
+	mockOrderCache := mock_order.NewMockCache(ctrl)
+	mockLogger := common_mock.NewMockLogger(ctrl)
 
-// 	orderService := order.NewOrderService(
-// 		mockOrderQueue,
-// 		mockMercadoLivre,
-// 		mockStoreUseCase,
-// 		mockAnnUseCase,
-// 		mockOrderRepo,
-// 		mockOrderCache,
-// 		mockLogger,
-// 	)
-//   t.Run("process a new order - error to retrieve credentials", func(t *testing.T) {
-//     orderMessage := order.OrderMessage{
-//       Store:         "1",
-//       OrderId:       "20210101000000",
-//       Attempts:      0,
-//       ReceiptHandle: "test-receipt-handle",
-//     }
+	orderService := order.NewOrderService(
+		mockOrderQueue,
+		mockMercadoLivre,
+		mockStoreUseCase,
+		mockAnnUseCase,
+		mockOrderRepo,
+		mockOrderCache,
+		mockLogger,
+	)
 
-//     mockOrderCache.EXPECT().GetOrder(orderMessage.OrderId).Return(nil, nil)
-//     mockOrderRepo.EXPECT().GetOrder(orderMessage.OrderId).Return(nil, nil)
-//   }
+	t.Run("process webhook - error posting to queue", func(t *testing.T) {
+		notification := order.OrderWebhookDtoInput{
+			ID:            "test-id",
+			Resource:      "/orders/20210101000000",
+			UserID:        1,
+			Attempts:      0,
+			Topic:         "orders_v2",
+			ApplicationID: 1,
+			Received:      "2022-10-30T16:19:20.129Z",
+			Sent:          "2022-10-30T16:19:20.106Z",
+		}
 
-// }
+		mockOrderQueue.EXPECT().PostOrderNotification(notification).Return(errors.New("error posting to queue"))
+		mockLogger.EXPECT().Error(
+			"Error to post order notification",
+			errors.New("error posting to queue"),
+			zap.String("notification_id", notification.ID),
+			zap.Int("user_id", notification.UserID),
+			zap.Int("attempts", notification.Attempts),
+			zap.String("sent", notification.Sent),
+		)
+
+		err := orderService.ProcessWebhook(notification)
+		if err == nil {
+			t.Errorf("Error testing error on processing webhook: %v", err)
+		}
+		if err.Error() != "error to post order notification" {
+			t.Errorf("Wrong error message: %v", err)
+		}
+	})
+
+	t.Run("process a new order - error getting order from cache", func(t *testing.T) {
+		orderMessage := order.OrderMessage{
+			Store:         "1",
+			OrderId:       "20210101000000",
+			Attempts:      0,
+			ReceiptHandle: "test-receipt-handle",
+		}
+
+		mockOrderCache.EXPECT().GetOrder(orderMessage.OrderId).Return(nil, errors.New("error getting order from cache"))
+		mockLogger.EXPECT().Warn(
+			"Fail to retrieve order from cache",
+			zap.String("order_id", orderMessage.OrderId),
+			zap.Error(errors.New("error getting order from cache")),
+		)
+		mockOrderRepo.EXPECT().GetOrder(orderMessage.OrderId).Return(nil, nil)
+		mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(gomock.Any()).Return(&store.Credentials{}, nil)
+		mockMercadoLivre.EXPECT().FetchOrder(gomock.Any(), gomock.Any()).Return(&common.MeliOrder{}, nil)
+		mockAnnUseCase.EXPECT().RetrieveAnnouncements(gomock.Any(), gomock.Any()).Return(&[]common.MeliAnnouncement{}, nil).AnyTimes()
+		mockAnnUseCase.EXPECT().UpdateQuantity(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		mockOrderRepo.EXPECT().RegisterOrder(gomock.Any()).Return(nil)
+		mockOrderCache.EXPECT().SetOrder(gomock.Any()).Return(nil)
+		mockOrderQueue.EXPECT().DeleteOrderNotification(orderMessage.ReceiptHandle).Return(nil)
+
+		err := orderService.ProcessOrder(orderMessage)
+		if err != nil {
+			t.Errorf("Error testing error on processing order - retrieving cached: %v", err)
+		}
+	})
+
+	t.Run("process a new order - error getting order from db", func(t *testing.T) {
+		orderMessage := order.OrderMessage{
+			Store:         "1",
+			OrderId:       "20210101000000",
+			Attempts:      0,
+			ReceiptHandle: "test-receipt-handle",
+		}
+
+		mockOrderCache.EXPECT().GetOrder(orderMessage.OrderId).Return(nil, nil)
+		mockOrderRepo.EXPECT().GetOrder(orderMessage.OrderId).Return(nil, errors.New("error getting order from db"))
+		mockLogger.EXPECT().Error(
+			"Fail to retrieve order from the DB",
+			errors.New("error getting order from db"),
+			zap.String("order_id", orderMessage.OrderId),
+		)
+
+		err := orderService.ProcessOrder(orderMessage)
+		if err == nil {
+			t.Errorf("Error testing error on processing order - retrieving from db: %v", err)
+		}
+		if err.Error() != "error getting order from db" {
+			t.Errorf("Wrong error message: %v", err)
+		}
+	})
+}
 
 func TestSupportingFuncs(t *testing.T) {
 	t.Run("test remove duplicated items", func(t *testing.T) {
