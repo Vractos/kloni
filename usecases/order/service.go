@@ -97,6 +97,7 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 	}
 
 	if odrSaved != nil {
+		// TODO: Checks if the order was successfully deleted from the queue
 		o.queue.DeleteOrderNotification(order.ReceiptHandle)
 		return nil
 	}

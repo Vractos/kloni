@@ -307,6 +307,132 @@ func TestOrderUseCaseErros(t *testing.T) {
 			t.Errorf("Wrong error message: %v", err)
 		}
 	})
+
+	t.Run("process a new order - error getting meli credentials", func(t *testing.T) {
+		orderMessage := order.OrderMessage{
+			Store:         "1",
+			OrderId:       "20210101000000",
+			Attempts:      0,
+			ReceiptHandle: "test-receipt-handle",
+		}
+
+		mockOrderCache.EXPECT().GetOrder(orderMessage.OrderId).Return(nil, nil)
+		mockOrderRepo.EXPECT().GetOrder(orderMessage.OrderId).Return(nil, nil)
+		mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(gomock.Any()).Return(nil, errors.New("error getting meli credentials"))
+		mockLogger.EXPECT().Error(
+			"Error in retrieving Meli credentials during order processing",
+			errors.New("error getting meli credentials"),
+			zap.String("order_id", orderMessage.OrderId),
+		)
+
+		err := orderService.ProcessOrder(orderMessage)
+		if err == nil {
+			t.Errorf("Error testing error on processing order - retrieving meli credentials: %v", err)
+		}
+		if err.Error() != "error to process order - get credentials" {
+			t.Errorf("Wrong error message: %v", err)
+		}
+	})
+
+	t.Run("process a new order - error fetching order from meli", func(t *testing.T) {
+		orderMessage := order.OrderMessage{
+			Store:         "1",
+			OrderId:       "20210101000000",
+			Attempts:      0,
+			ReceiptHandle: "test-receipt-handle",
+		}
+
+		mockOrderCache.EXPECT().GetOrder(orderMessage.OrderId).Return(nil, nil)
+		mockOrderRepo.EXPECT().GetOrder(orderMessage.OrderId).Return(nil, nil)
+		mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(gomock.Any()).Return(&store.Credentials{}, nil)
+		mockMercadoLivre.EXPECT().FetchOrder(gomock.Any(), gomock.Any()).Return(nil, errors.New("error fetching order from meli"))
+		mockLogger.EXPECT().Error(
+			"Error to fetch the order",
+			errors.New("error fetching order from meli"),
+			zap.String("order_id", orderMessage.OrderId),
+		)
+
+		err := orderService.ProcessOrder(orderMessage)
+		if err == nil {
+			t.Errorf("Error testing error on processing order - fetching order from meli: %v", err)
+		}
+		if err.Error() != "error fetching order from meli" {
+			t.Errorf("Wrong error message: %v", err)
+		}
+	})
+
+	t.Run("process a new order - product doesn't have sku", func(t *testing.T) {
+		orderMessage := order.OrderMessage{
+			Store:         "1",
+			OrderId:       "20210101000000",
+			Attempts:      0,
+			ReceiptHandle: "test-receipt-handle",
+		}
+		meliOrder := &common.MeliOrder{
+			ID:          "20210101000000",
+			DateCreated: "2022-10-30T16:19:20.129Z",
+			Status:      common.Paid,
+			Items: []common.OrderItem{
+				{
+					ID:       "1",
+					Title:    "test-title",
+					Sku:      "",
+					Quantity: 1,
+				},
+			},
+		}
+
+		mockOrderCache.EXPECT().GetOrder(orderMessage.OrderId).Return(nil, nil)
+		mockOrderRepo.EXPECT().GetOrder(orderMessage.OrderId).Return(nil, nil)
+		mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(gomock.Any()).Return(&store.Credentials{}, nil)
+		mockMercadoLivre.EXPECT().FetchOrder(gomock.Any(), gomock.Any()).Return(meliOrder, nil)
+		mockAnnUseCase.EXPECT().RetrieveAnnouncements(gomock.Any(), gomock.Any()).Return(&[]common.MeliAnnouncement{}, nil).AnyTimes()
+		mockAnnUseCase.EXPECT().UpdateQuantity(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		mockOrderRepo.EXPECT().RegisterOrder(gomock.Any()).Return(nil)
+		mockOrderCache.EXPECT().SetOrder(gomock.Any()).Return(nil)
+		mockOrderQueue.EXPECT().DeleteOrderNotification(orderMessage.ReceiptHandle).Return(nil)
+
+		err := orderService.ProcessOrder(orderMessage)
+		if err != nil {
+			t.Errorf("Error testing error on processing order - retrieving cached: %v", err)
+		}
+	})
+
+	t.Run("process a new order - error retrieving announcements", func(t *testing.T) {
+		storeId := entity.ID(uuid.New())
+		orderMessage := order.OrderMessage{
+			Store:         "1",
+			OrderId:       "20210101000000",
+			Attempts:      0,
+			ReceiptHandle: "test-receipt-handle",
+		}
+
+		meliCredentials := &store.Credentials{
+			StoreID:         storeId,
+			MeliAccessToken: "test-access-token",
+			MeliUserID:      "1",
+		}
+		meliOrder := &common.MeliOrder{
+			ID:          "20210101000000",
+			DateCreated: "2022-10-30T16:19:20.129Z",
+			Status:      common.Paid,
+			Items: []common.OrderItem{
+				{
+					ID:       "1",
+					Title:    "test-title",
+					Sku:      "test-sku",
+					Quantity: 1,
+				},
+			},
+		}
+
+		mockOrderCache.EXPECT().GetOrder(orderMessage.OrderId).Return(nil, nil)
+		mockOrderRepo.EXPECT().GetOrder(orderMessage.OrderId).Return(nil, nil)
+		mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(orderMessage.Store).Return(meliCredentials, nil)
+		mockMercadoLivre.EXPECT().FetchOrder(orderMessage.OrderId, meliCredentials.MeliAccessToken).Return(&common.MeliOrder{}, nil)
+		mockAnnUseCase.EXPECT().RetrieveAnnouncements(meliOrder.Items[0].Sku, *meliCredentials).Return(nil, errors.New("error retrieving announcements"))
+
+	})
 }
 
 func TestSupportingFuncs(t *testing.T) {
