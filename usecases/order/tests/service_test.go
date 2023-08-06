@@ -567,6 +567,41 @@ func TestProcessOrder(t *testing.T) {
 			},
 			errMessage: fmt.Sprintf("Message: error retrieving announcements - Announcement SKU: %s", defaultMeliOrder.Items[0].Sku),
 		},
+		{
+			name:         "error retrieving announcements and able to retry - success on retry",
+			orderMessage: defaultOrderMessage,
+			mockCall: func(m *Mocks) {
+				annErr := &announcement.AnnouncementError{
+					Message:       "error retrieving announcements",
+					IsAbleToRetry: true,
+					Sku:           defaultMeliOrder.Items[0].Sku,
+				}
+
+				gomock.InOrder(
+					m.mockOrderCache.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
+					m.mockOrderRepo.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
+					m.mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(defaultOrderMessage.Store).Return(defaultMeliCredentials, nil),
+					m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, defaultMeliCredentials.MeliAccessToken).Return(defaultMeliOrder, nil),
+					m.mockAnnUseCase.EXPECT().RetrieveAnnouncements(defaultMeliOrder.Items[0].Sku, *defaultMeliCredentials).Return(nil, annErr),
+					m.mockLogger.EXPECT().Warn(
+						"Fail in retrieving the order product clones",
+						zap.Error(annErr),
+						zap.String("order_id", defaultOrderMessage.OrderId),
+						zap.String("sku", defaultMeliOrder.Items[0].Sku),
+					),
+					m.mockLogger.EXPECT().Info(
+						"Retrying to retrieve order products clones...",
+						zap.String("order_id", defaultOrderMessage.OrderId),
+						zap.String("sku", defaultMeliOrder.Items[0].Sku),
+					),
+					m.mockAnnUseCase.EXPECT().RetrieveAnnouncements(defaultMeliOrder.Items[0].Sku, *defaultMeliCredentials).Return(&[]common.MeliAnnouncement{}, nil),
+					m.mockAnnUseCase.EXPECT().UpdateQuantity(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes(),
+					m.mockOrderRepo.EXPECT().RegisterOrder(gomock.Any()).Return(nil),
+					m.mockOrderCache.EXPECT().SetOrder(gomock.Any()).Return(nil),
+					m.mockOrderQueue.EXPECT().DeleteOrderNotification(defaultOrderMessage.ReceiptHandle).Return(nil),
+				)
+			},
+		},
 	}
 
 	for _, tt := range errRetrievingDataFromMeli {
@@ -654,6 +689,77 @@ func TestProcessOrder(t *testing.T) {
 	}
 
 	for _, tt := range errUpdatingAnnouncements {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+
+			mocks := newMocks(ctrl)
+			orderService := mocks.newOrderService()
+
+			if tt.mockCall != nil {
+				tt.mockCall(mocks)
+			}
+
+			err := orderService.ProcessOrder(tt.orderMessage)
+			if (err != nil) != (tt.errMessage != "") {
+				t.Errorf("Error processing order: %v", err)
+			}
+			if tt.errMessage != "" && err.Error() != tt.errMessage {
+				t.Errorf("Wrong error message:\n Got: %v\n Expect: %v", err, tt.errMessage)
+			}
+		})
+	}
+
+	errRegisteringOrder := []struct {
+		name         string
+		orderMessage order.OrderMessage
+		mockCall     func(m *Mocks)
+		errMessage   string
+	}{
+		{
+			name:         "error registering order",
+			orderMessage: defaultOrderMessage,
+			mockCall: func(m *Mocks) {
+				gomock.InOrder(
+					m.mockOrderCache.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
+					m.mockOrderRepo.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
+					m.mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(defaultOrderMessage.Store).Return(defaultMeliCredentials, nil),
+					m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, defaultMeliCredentials.MeliAccessToken).Return(defaultMeliOrder, nil),
+					m.mockAnnUseCase.EXPECT().RetrieveAnnouncements(defaultMeliOrder.Items[0].Sku, *defaultMeliCredentials).Return(&[]common.MeliAnnouncement{}, nil),
+					m.mockAnnUseCase.EXPECT().UpdateQuantity(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes(),
+					m.mockOrderRepo.EXPECT().RegisterOrder(gomock.Any()).Return(errors.New("error registering order")),
+					m.mockLogger.EXPECT().Error(
+						"Fail to store the order",
+						errors.New("error registering order"),
+						zap.String("order_id", defaultOrderMessage.OrderId),
+					),
+				)
+			},
+			errMessage: "couldn't store order",
+		},
+		{
+			name:         "error setting order on cache",
+			orderMessage: defaultOrderMessage,
+			mockCall: func(m *Mocks) {
+				gomock.InOrder(
+					m.mockOrderCache.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
+					m.mockOrderRepo.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
+					m.mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(defaultOrderMessage.Store).Return(defaultMeliCredentials, nil),
+					m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, defaultMeliCredentials.MeliAccessToken).Return(defaultMeliOrder, nil),
+					m.mockAnnUseCase.EXPECT().RetrieveAnnouncements(defaultMeliOrder.Items[0].Sku, *defaultMeliCredentials).Return(&[]common.MeliAnnouncement{}, nil),
+					m.mockAnnUseCase.EXPECT().UpdateQuantity(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes(),
+					m.mockOrderRepo.EXPECT().RegisterOrder(gomock.Any()).Return(nil),
+					m.mockOrderCache.EXPECT().SetOrder(gomock.Any()).Return(errors.New("error setting order on cache")),
+					m.mockLogger.EXPECT().Warn(
+						"Fail to cache the order",
+						zap.String("order_id", defaultOrderMessage.OrderId),
+					),
+					m.mockOrderQueue.EXPECT().DeleteOrderNotification(defaultOrderMessage.ReceiptHandle).Return(nil),
+				)
+			},
+		},
+	}
+
+	for _, tt := range errRegisteringOrder {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
