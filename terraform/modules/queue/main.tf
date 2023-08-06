@@ -1,6 +1,5 @@
 resource "aws_sqs_queue" "sqs_fifo_queue_deadletter" {
   name                       = "${var.sqs_queue_name}Deadletter.fifo"
-  # name_prefix                       = "${var.sqs_queue_name}Deadetter"
   fifo_queue = true
   visibility_timeout_seconds = 60
   receive_wait_time_seconds  = 20
@@ -8,7 +7,6 @@ resource "aws_sqs_queue" "sqs_fifo_queue_deadletter" {
 
   tags = {
     Name        = "${var.project}-${var.sqs_queue_name}-dll-sqs-fifo"
-    Environment = var.environment
   }
 }
 
@@ -28,7 +26,6 @@ resource "aws_sqs_queue_redrive_allow_policy" "fifo-queue-dll" {
 
 resource "aws_sqs_queue" "sqs_fifo_queue" {
   name                       = "${var.sqs_queue_name}.fifo"
-  # name_prefix                       = "${var.sqs_queue_name}"
   fifo_queue = true
   visibility_timeout_seconds = var.fifo_queue_visibility_timeout
   receive_wait_time_seconds  = 20
@@ -44,7 +41,6 @@ resource "aws_sqs_queue" "sqs_fifo_queue" {
 
   tags = {
     Name        = "${var.project}-${var.sqs_queue_name}-sqs-fifo"
-    Environment = var.environment
   }
 }
 

@@ -5,15 +5,9 @@ output "sqs_fifo_queue_url" {
 output "database_endpoint" {
   description = "The endpoint of the database"
   sensitive = true
-  value = module.database.database_endpoint
+  value = length(module.database) > 0 ? module.database[0].database_endpoint : null
 }
-
-output "database_port" {
-  description = "The port of the database"
-  value = module.database.database_port
-}
-
 output "server_public_ip" {
-  value = module.network.server_public_ip
+  value = length(module.network) > 0 ? module.network[0].server_public_ip : null
   sensitive = true
 }

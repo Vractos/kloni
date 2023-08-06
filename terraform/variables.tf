@@ -1,9 +1,11 @@
-variable "environment" {
+variable "project" {
   type = string
+  default = "dolly"
 }
 
 variable "region" {
   type = string
+  default = "us-east-1"
 }
 
 variable "sdk_user_name" {

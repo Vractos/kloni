@@ -1,15 +1,16 @@
 package order
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/Vractos/dolly/usecases/common"
+)
 
 type OrderError struct {
 	Message            string
-	AnnouncementsError []struct {
-		id       string
-		quantity int
-	}
+	AnnouncementsError []common.OrderItem
 }
 
 func (o *OrderError) Error() string {
-	return fmt.Sprintf("Message: %s", o.Message)
+	return fmt.Sprintf("%s", o.Message)
 }

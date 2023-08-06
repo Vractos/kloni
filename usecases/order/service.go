@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/Vractos/dolly/entity"
-	"github.com/Vractos/dolly/pkg/metrics"
 	"github.com/Vractos/dolly/usecases/announcement"
 	"github.com/Vractos/dolly/usecases/common"
 	"github.com/Vractos/dolly/usecases/store"
@@ -19,7 +18,7 @@ type OrderService struct {
 	announce announcement.UseCase
 	repo     Repository
 	cache    Cache
-	logger   metrics.Logger
+	logger   common.Logger
 }
 
 func NewOrderService(
@@ -29,7 +28,7 @@ func NewOrderService(
 	announceUseCase announcement.UseCase,
 	repository Repository,
 	cache Cache,
-	logger metrics.Logger,
+	logger common.Logger,
 ) *OrderService {
 	return &OrderService{
 		queue:    queue,
@@ -57,13 +56,16 @@ func (o *OrderService) ProcessWebhook(input OrderWebhookDtoInput) error {
 	return nil
 }
 
+// removeDuplicateItens removes duplicate items from the given slice of OrderItem pointers.
+// It modifies the original slice by removing duplicates and summing their quantities.
+// The function uses the Sku field of each OrderItem to determine if it is a duplicate.
 func removeDuplicateItens(items *[]common.OrderItem) {
 	var unique []common.OrderItem
 	type key struct{ Sku string }
 	m := make(map[key]int)
 	for _, item := range *items {
 		k := key{item.Sku}
-		if i, ok := m[k]; ok {
+		if i, ok := m[k]; ok && item.Sku != "" {
 			unique[i].Quantity = unique[i].Quantity + item.Quantity
 		} else {
 			m[k] = len(unique)
@@ -80,7 +82,7 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 
 	status, err := o.cache.GetOrder(order.OrderId)
 	if err != nil {
-		o.logger.Warn("Fail to retrieve order cache", zap.String("order_id", order.OrderId), zap.Error(err))
+		o.logger.Warn("Fail to retrieve order from cache", zap.String("order_id", order.OrderId), zap.Error(err))
 	}
 
 	if status != nil {
@@ -95,6 +97,7 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 	}
 
 	if odrSaved != nil {
+		// TODO: Checks if the order was successfully deleted from the queue
 		o.queue.DeleteOrderNotification(order.ReceiptHandle)
 		return nil
 	}
@@ -158,6 +161,7 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 							})
 						}
 					}
+					continue
 				} else {
 					o.logger.Error("Error in retrieving the order product clones", err, zap.String("order_id", order.OrderId), zap.String("sku", item.Sku))
 					return err
@@ -185,30 +189,18 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 
 	// It contains announcements that were not possible to change the quantity,
 	// but will be retried
-	var toChangeQuantity []struct {
-		id       string
-		quantity int
-	}
+	var toChangeQuantity []common.OrderItem
 
 	// It contains announcements that were not possible to change the quantity
-	var canNotChangeQuantity []struct {
-		id       string
-		quantity int
-	}
+	var canNotChangeQuantity []common.OrderItem
 
 	for _, ann := range anns {
 		if err := o.announce.UpdateQuantity(ann.ID, ann.Quantity, *credentials); err != nil {
 			var annErr *announcement.AnnouncementError
 			if errors.As(err, &annErr) && annErr.IsAbleToRetry {
-				toChangeQuantity = append(toChangeQuantity, struct {
-					id       string
-					quantity int
-				}{ann.ID, ann.Quantity})
+				toChangeQuantity = append(toChangeQuantity, ann)
 			} else {
-				canNotChangeQuantity = append(canNotChangeQuantity, struct {
-					id       string
-					quantity int
-				}{ann.ID, ann.Quantity})
+				canNotChangeQuantity = append(canNotChangeQuantity, ann)
 			}
 		}
 	}
@@ -216,31 +208,33 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 	// TODO Turn into a goroutine
 	// if utils.PercentOf(len(toChangeQuantity), len(orderData.Items)) >= 40.0 {
 	for _, ann := range toChangeQuantity {
-		if err := o.announce.UpdateQuantity(ann.id, ann.quantity, *credentials); err != nil {
-			canNotChangeQuantity = append(canNotChangeQuantity, struct {
-				id       string
-				quantity int
-			}{ann.id, ann.quantity})
+		if err := o.announce.UpdateQuantity(ann.ID, ann.Quantity, *credentials); err != nil {
+			canNotChangeQuantity = append(canNotChangeQuantity, ann)
 		}
 	}
 	// }
 
-	if utils.PercentOf(len(canNotChangeQuantity), len(orderData.Items)) >= 20.0 {
-		oErr := &OrderError{
-			Message:            "Couldn't change the announcements",
-			AnnouncementsError: canNotChangeQuantity,
-		}
+	// if utils.PercentOf(len(canNotChangeQuantity), len(orderData.Items)) >= 20.0 {
+	// 	oErr := &OrderError{
+	// 		Message:            "Couldn't change the announcements",
+	// 		AnnouncementsError: canNotChangeQuantity,
+	// 	}
 
-		o.logger.Error(oErr.Message, err, zap.Reflect("Announcements that were not possible to change the quantity", canNotChangeQuantity))
-		return oErr
-	}
+	// 	o.logger.Error(oErr.Message, err, zap.Reflect("Announcements that were not possible to change the quantity", canNotChangeQuantity))
+	// 	return oErr
+	// }
 
 	if canNotChangeQuantity != nil {
 		oErr := &OrderError{
 			Message:            "Couldn't change the announcements",
 			AnnouncementsError: canNotChangeQuantity,
 		}
-		o.logger.Warn(oErr.Message, zap.Reflect("Announcements that were not possible to change the quantity", canNotChangeQuantity))
+		o.logger.Error(
+			oErr.Message,
+			oErr,
+			zap.Any("Announcements that were not possible to change the quantity", oErr.AnnouncementsError),
+		)
+		return oErr
 	}
 	// -------------------------------------------
 	// --------- STORING ORDER IN THE DB ---------
@@ -275,3 +269,6 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 	o.queue.DeleteOrderNotification(order.ReceiptHandle)
 	return nil
 }
+
+// Exporting for testing purposes
+var RemoveDuplicateItensTest = removeDuplicateItens

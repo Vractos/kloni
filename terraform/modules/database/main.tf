@@ -1,10 +1,10 @@
 resource "aws_db_subnet_group" "default" {
+  # name = var.db_name
   name = "main"
   subnet_ids = var.subnet_ids
 
   tags = {
     Name = "${var.db_name} DB subnet group"
-    Environment = var.environment
   }
 }
 
@@ -31,8 +31,7 @@ resource "aws_db_instance" "postgres_db" {
   
 
   tags = {
-    Name = "${var.db_name}-postgres-db"
-    Environment = var.environment
+    Name = "${var.project}-postgres-db"
   }
   
 }

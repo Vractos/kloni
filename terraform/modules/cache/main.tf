@@ -6,10 +6,10 @@ resource "aws_elasticache_subnet_group" "redis_subnet" {
 resource "aws_elasticache_cluster" "redis" {
   cluster_id = "dolly-redis"
   engine = "redis"
-  node_type = "cache.t3.micro"
-  num_cache_nodes = 1
-  parameter_group_name = "default.redis6.x"
-  engine_version = "6.2"
+  node_type = var.node_type
+  num_cache_nodes = var.num_cache_nodes
+  parameter_group_name = var.parameter_group_name
+  engine_version = var.engine_version
   subnet_group_name = aws_elasticache_subnet_group.redis_subnet.name
   security_group_ids = var.redis_security_group_ids
 }

@@ -92,7 +92,7 @@ func main() {
 	// Caches
 	orderCache := cache.NewOrderRedis(rdb)
 	// Services
-	storeService := store.NewStoreService(storeRepo, mercadoLivre, *logger)
+	storeService := store.NewStoreService(storeRepo, mercadoLivre, logger)
 	announceService := announcement.NewAnnouncementService(mercadoLivre, storeService, *logger)
 	orderService := order.NewOrderService(
 		orderQueue,
@@ -101,7 +101,7 @@ func main() {
 		announceService,
 		orderRepo,
 		orderCache,
-		*logger,
+		logger,
 	)
 
 	// Pull messages from queue

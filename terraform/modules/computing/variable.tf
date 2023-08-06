@@ -1,4 +1,5 @@
 variable "ami" {
+  type = string
   description = "Ubuntu 22.04 LTS"
   default = "ami-0557a15b87f6559cf"
 }
@@ -8,12 +9,13 @@ variable "instance_name" {
   default = "dolly"
 }
 
-variable "ami_default_public_key" {
-  description = "A AMI Key pair"
+variable "sdk_account_id" {
+  type = string
+  nullable = false
 }
 
-variable "environment" {
-  type = string
+variable "ami_default_public_key" {
+  description = "A AMI Key pair"
 }
 
 variable "eip_id" {
@@ -28,4 +30,14 @@ variable "server_public_subnet" {
 variable "server_security_group" {
   nullable = false
   type = string
+}
+
+variable "project" {
+  type = string
+  default = "dolly"
+}
+
+variable "region" {
+  type = string
+  default = "us-east-1"
 }

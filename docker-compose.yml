@@ -12,7 +12,7 @@ services:
     ports:
       - 8080:80
     environment:
-      - APP_ENV=tet
+      - APP_ENV=development
       - AUTH0_DOMAIN=${AUTH0_DOMAIN}
       - AUTH0_AUDIENCE=${AUTH0_AUDIENCE}
       - POSTGRES_USER=${POSTGRES_USER}
@@ -44,19 +44,19 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./ops/db/init.sql:/docker-entrypoint-initdb.d/init.sql
 
-  # pgadmin:
-  #   container_name: pgadmin
-  #   image: dpage/pgadmin4:latest
-  #   depends_on:
-  #     - postgres
-  #   ports:
-  #     - 5050:80
-  #   restart: unless-stopped
-  #   environment:
-  #     - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
-  #     - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
-  #   volumes:
-  #     - pgadmin:/var/lib/pgadmin
+  pgadmin:
+    container_name: pgadmin
+    image: dpage/pgadmin4:latest
+    depends_on:
+      - postgres
+    ports:
+      - 5050:80
+    restart: unless-stopped
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+    volumes:
+      - pgadmin:/var/lib/pgadmin
 
   redis:
     container_name: redis
