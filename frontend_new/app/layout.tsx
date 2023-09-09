@@ -3,6 +3,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import NavBar from "./components/navbar";
+import React from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -13,21 +14,19 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
+
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" className="h-full bg-gray-100">
+    <html lang="pt-BR" className="h-full">
       <UserProvider>
-        <body className={`${inter.className} h-full`}>
-          <div className="min-h-full">
-            <NavBar />
-            <main>
-              <div className="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
-              {children}
-              </div>
-            </main>
-          </div>
+        <body
+          className={`${inter.className} h-full`}
+          style={{ overflow: "hidden" }}
+          >
+          <NavBar />
+          {children}
         </body>
       </UserProvider>
     </html>

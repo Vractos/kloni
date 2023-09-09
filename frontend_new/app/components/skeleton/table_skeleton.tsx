@@ -1,8 +1,5 @@
-import Image from "next/image";
-import { formatCurrency } from '../_lib/utils/formatter';
-import { IAnnouncement } from '../_lib/interfaces/announcements';
 
-export default function Table({ announcements }: { announcements: IAnnouncement[] }) {
+export default async function TableSkeleton() {
   return (
     <div className="overflow-x-auto relative rounded-lg">
       <table className="w-full text-sm text-left text-gray-500 table-auto">
@@ -27,8 +24,9 @@ export default function Table({ announcements }: { announcements: IAnnouncement[
           </tr>
         </thead>
         <tbody>
-          {announcements &&
-            announcements.map((announcement, index) => {
+          {Array(5)
+            .fill(0)
+            .map((_, index) => {
               return (
                 <tr className="bg-white border-b" key={index}>
                   <th
@@ -37,40 +35,29 @@ export default function Table({ announcements }: { announcements: IAnnouncement[
                   >
                     <div className="flex items-center justify-center">
                       <div className="w-10 h-10 flex-shrink-0">
-                        <Image
-                          className="rounded-full"
-                          src={announcement.picture}
-                          width={40}
-                          height={40}
-                          alt={announcement.title}
-                        />
+                        <div className="rounded-full w-10 h-10 animate-pulse bg-gray-300" />
                       </div>
                     </div>
                   </th>
                   <td className="py-4 px-6">
-                    <a
-                      href={announcement.link}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-blue-600"
-                    >
-                      {announcement.title}
-                    </a>
+                    <div className="h-2.5 rounded-full animate-pulse  bg-gray-300 w-[370px]" />
                   </td>
-                  <td className="py-4 px-6">{announcement.sku}</td>
-                  <td className="py-4 px-6 text-center">
-                    {announcement.quantity}
+                  <td className="py-4 px-6">
+                    <div className="h-2.5 rounded-full animate-pulse bg-gray-300 w-[119px]" />
                   </td>
                   <td className="py-4 px-6 text-center">
-                    {formatCurrency(announcement.price)}
+                    <div className="h-2.5 rounded-full animate-pulse bg-gray-300 w-5 ml-[29px]" />
+                  </td>
+                  <td className="py-4 px-6 text-center">
+                    <div className="h-2.5 rounded-full animate-pulse  bg-gray-300 w-24" />
                   </td>
                   <td className="py-4 px-6 text-center">
                     <button
                       type="button"
-                      className="group relative flex w-10/12 justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                      className="group relative flex w-10/12 justify-center rounded-md border border-transparent animate-pulse bg-gray-300 py-2 px-4 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                     >
                       <span className="absolute inset-y-0 left-0 flex items-center pl-3"></span>
-                      Clonar
+                      <div className="h-4 rounded-full animate-pulse  bg-gray-300 w-11" />
                     </button>
                   </td>
                 </tr>

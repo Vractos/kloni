@@ -3,6 +3,9 @@
 import { Fragment } from 'react'
 import { Disclosure, Menu, Transition } from '@headlessui/react'
 import { Bars3Icon, BellIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import Image from 'next/image'
 
 const user = {
   name: 'Tom Cook',
@@ -11,16 +14,11 @@ const user = {
     'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
 }
 const navigation = [
-  { name: 'Anúncios', href: '#', current: true },
-  { name: 'Team', href: '#', current: false },
-  { name: 'Projects', href: '#', current: false },
-  { name: 'Calendar', href: '#', current: false },
-  { name: 'Reports', href: '#', current: false },
+  { name: 'Anúncios', href: '/'},
+  { name: 'Configurações', href: '/configuracoes'},
 ]
 const userNavigation = [
-  { name: 'Your Profile', href: '#' },
-  { name: 'Settings', href: '#' },
-  { name: 'Sign out', href: '#' },
+  { name: 'Sair', href: '#' },
 ]
 
 function classNames(...classes: string[]) {
@@ -28,16 +26,12 @@ function classNames(...classes: string[]) {
 }
 
 export default function NavBar() {
+  const pathName = usePathname()
+  const firstPath = `/${pathName.split("/")[1]}`;
+  
+
   return (
     <>
-      {/*
-        This example requires updating your template:
-
-        ```
-        <html class="h-full bg-gray-100">
-        <body class="h-full">
-        ```
-      */}
         <Disclosure as="nav" className="bg-indigo-600">
           {({ open }) => (
             <>
@@ -45,28 +39,29 @@ export default function NavBar() {
                 <div className="flex h-16 items-center justify-between">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
-                      <img
-                        className="h-8 w-8"
-                        src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=300"
+                      <Image
+                        height={32}
+                        width={32}
+                        src="/sheep.png"
                         alt="Your Company"
                       />
                     </div>
                     <div className="hidden md:block">
                       <div className="ml-10 flex items-baseline space-x-4">
                         {navigation.map((item) => (
-                          <a
+                          <Link
                             key={item.name}
                             href={item.href}
                             className={classNames(
-                              item.current
+                              firstPath === item.href
                                 ? 'bg-indigo-700 text-white'
                                 : 'text-white hover:bg-indigo-500 hover:bg-opacity-75',
                               'rounded-md px-3 py-2 text-sm font-medium'
                             )}
-                            aria-current={item.current ? 'page' : undefined}
+                            aria-current={(pathName === item.href) ? 'page' : undefined}
                           >
                             {item.name}
-                          </a>
+                          </Link>
                         ))}
                       </div>
                     </div>
@@ -144,12 +139,12 @@ export default function NavBar() {
                       as="a"
                       href={item.href}
                       className={classNames(
-                        item.current
+                        firstPath === item.href
                           ? 'bg-indigo-700 text-white'
                           : 'text-white hover:bg-indigo-500 hover:bg-opacity-75',
                         'block rounded-md px-3 py-2 text-base font-medium'
                       )}
-                      aria-current={item.current ? 'page' : undefined}
+                      aria-current={(pathName === item.href) ? 'page' : undefined}
                     >
                       {item.name}
                     </Disclosure.Button>
