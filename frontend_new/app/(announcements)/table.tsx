@@ -68,7 +68,7 @@ export default async function Table({ sku }: { sku: string }) {
                     {formatCurrency(announcement.price)}
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <Link href={`/clonar/${announcement.id}`}className="button">
+                    <Link href={`/clonar/${announcement.id}`} className="button">
                       <button
                         type="button"
                         className="group relative flex w-10/12 justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"

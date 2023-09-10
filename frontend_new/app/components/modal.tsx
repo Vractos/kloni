@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import {
   ExclamationTriangleIcon,
@@ -9,10 +9,18 @@ import {
 import { useRouter } from "next/navigation";
 
 export default function Example() {
+  const [open, setOpen] = useState(true);
   const router = useRouter();
 
+  const onClose = () => {
+    setOpen(false);
+    setTimeout(() => {
+      router.back();
+    }, 600);
+  };
+
   return (
-    <Transition.Root show={true} appear={true}>
+    <Transition.Root show={open} appear={true}>
       <Dialog as="div" className="relative z-10" onClose={() => null}>
         <Transition.Child
           as={Fragment}
@@ -43,7 +51,7 @@ export default function Example() {
                     <button
                       type="button"
                       className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                      onClick={() => router.back()}
+                      onClick={onClose}
                     >
                       <span className="sr-only">Close</span>
                       <XMarkIcon className="h-6 w-6" aria-hidden="true" />
@@ -91,6 +99,7 @@ export default function Example() {
                     <button
                       type="button"
                       className="text-sm font-semibold leading-6 text-gray-900"
+                      onClick={onClose}
                     >
                       Cancel
                     </button>
