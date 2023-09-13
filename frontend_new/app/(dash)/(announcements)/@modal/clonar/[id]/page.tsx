@@ -1,4 +1,4 @@
-import Example from '../../../../components/modal';
+import Example from '../../../../../components/modal';
 
 export default function Modal() {
 

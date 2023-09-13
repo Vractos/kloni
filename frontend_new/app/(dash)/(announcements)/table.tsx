@@ -1,6 +1,6 @@
 import Image from "next/image";
-import { formatCurrency } from "../_lib/utils/formatter";
-import { getAnnouncements } from "../api/handlers/announcements";
+import { formatCurrency } from "../../_lib/utils/formatter";
+import { getAnnouncements } from "../../api/handlers/announcements";
 import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 
@@ -94,8 +94,8 @@ export default async function Table({ sku }: { sku: string }) {
               aria-hidden="true"
             >
               <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
+                strokeLinecap="round"
+                strokeLinejoin="round"
                 vectorEffect="non-scaling-stroke"
                 strokeWidth={2}
                 d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"

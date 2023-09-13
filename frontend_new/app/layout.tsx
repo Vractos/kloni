@@ -25,7 +25,6 @@ export default function RootLayout({
           className={`${inter.className} h-full`}
           style={{ overflow: "hidden" }}
           >
-          <NavBar />
           {children}
         </body>
       </UserProvider>

@@ -18,7 +18,7 @@ const navigation = [
   { name: 'Configurações', href: '/configuracoes'},
 ]
 const userNavigation = [
-  { name: 'Sair', href: '#' },
+  { name: 'Sair', href: '/api/auth/logout' },
 ]
 
 function classNames(...classes: string[]) {

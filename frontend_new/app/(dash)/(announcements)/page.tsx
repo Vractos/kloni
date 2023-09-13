@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Table from "./table";
-import TableSkeleton from "../components/skeleton/table_skeleton";
+import TableSkeleton from "../../components/skeleton/table_skeleton";
 import Link from 'next/link';
 
 export const runtime = "edge";
