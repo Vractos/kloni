@@ -55,7 +55,7 @@ export default async function Table({ sku }: { sku: string }) {
                       href={announcement.link}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-blue-600"
+                      className="text-indigo-600"
                     >
                       {announcement.title}
                     </a>

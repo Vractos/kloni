@@ -20,14 +20,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className="h-full">
-      <UserProvider>
+      {/* <UserProvider> */}
         <body
           className={`${inter.className} h-full`}
           style={{ overflow: "hidden" }}
           >
           {children}
         </body>
-      </UserProvider>
+      {/* </UserProvider> */}
     </html>
   );
 }
