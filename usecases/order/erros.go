@@ -3,7 +3,7 @@ package order
 import (
 	"fmt"
 
-	"github.com/Vractos/dolly/usecases/common"
+	"github.com/Vractos/kloni/usecases/common"
 )
 
 type OrderError struct {

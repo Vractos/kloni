@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Vractos/dolly/usecases/common"
+	"github.com/Vractos/kloni/usecases/common"
 	"go.uber.org/zap"
 )
 

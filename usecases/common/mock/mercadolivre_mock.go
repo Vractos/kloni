@@ -7,7 +7,7 @@ package mock_common
 import (
 	reflect "reflect"
 
-	common "github.com/Vractos/dolly/usecases/common"
+	common "github.com/Vractos/kloni/usecases/common"
 	gomock "github.com/golang/mock/gomock"
 )
 

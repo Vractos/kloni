@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/Vractos/dolly/adapter/api/presenter"
-	"github.com/Vractos/dolly/entity"
-	"github.com/Vractos/dolly/pkg/contexttools"
-	"github.com/Vractos/dolly/pkg/metrics"
-	"github.com/Vractos/dolly/usecases/announcement"
-	"github.com/Vractos/dolly/usecases/store"
+	"github.com/Vractos/kloni/adapter/api/presenter"
+	"github.com/Vractos/kloni/entity"
+	"github.com/Vractos/kloni/pkg/contexttools"
+	"github.com/Vractos/kloni/pkg/metrics"
+	"github.com/Vractos/kloni/usecases/announcement"
+	"github.com/Vractos/kloni/usecases/store"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )

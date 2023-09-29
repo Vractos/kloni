@@ -7,8 +7,8 @@ package mock_order
 import (
 	reflect "reflect"
 
-	entity "github.com/Vractos/dolly/entity"
-	order "github.com/Vractos/dolly/usecases/order"
+	entity "github.com/Vractos/kloni/entity"
+	order "github.com/Vractos/kloni/usecases/order"
 	gomock "github.com/golang/mock/gomock"
 )
 

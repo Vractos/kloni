@@ -30,5 +30,5 @@ variable "engine_version" {
 
 variable "project" {
   type = string
-  default = "dolly"
+  default = "kloni"
 }

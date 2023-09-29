@@ -3,8 +3,8 @@ package store
 import (
 	"time"
 
-	"github.com/Vractos/dolly/entity"
-	"github.com/Vractos/dolly/usecases/common"
+	"github.com/Vractos/kloni/entity"
+	"github.com/Vractos/kloni/usecases/common"
 	"go.uber.org/zap"
 )
 

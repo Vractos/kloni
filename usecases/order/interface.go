@@ -1,6 +1,6 @@
 package order
 
-import "github.com/Vractos/dolly/entity"
+import "github.com/Vractos/kloni/entity"
 
 type UseCase interface {
 	ProcessWebhook(input OrderWebhookDtoInput) error

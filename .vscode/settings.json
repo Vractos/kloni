@@ -6,7 +6,7 @@
       "port": 5432,
       "driver": "PostgreSQL",
       "name": "Local Dolly DB",
-      "database": "dolly",
+      "database": "kloni",
       "username": "admin",
       "password": "user123"
     }

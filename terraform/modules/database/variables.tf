@@ -5,7 +5,7 @@ variable "subnet_ids" {
 
 variable "db_name" {
   type = string
-  default = "dolly"
+  default = "kloni"
 }
 
 variable "db_username" {
@@ -22,7 +22,7 @@ variable "db_password" {
 
 variable "final_snapshot_identifier" {
   type = string
-  default = "dolly-final-snapshot"
+  default = "kloni-final-snapshot"
 }
 
 variable "db_security_group_ids" {
@@ -32,5 +32,5 @@ variable "db_security_group_ids" {
 
 variable "project" {
   type = string
-  default = "dolly"
+  default = "kloni"
 }

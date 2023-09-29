@@ -1,10 +1,10 @@
 version: "3.8"
 
 services:
-  dolly:
-    container_name: dolly-server
+  kloni:
+    container_name: kloni-server
     build: .
-    image: dolly-server
+    image: kloni-server
     # logging:
     #   driver: loki
     #   options:

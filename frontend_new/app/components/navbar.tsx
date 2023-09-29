@@ -40,9 +40,9 @@ export default function NavBar() {
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
                       <Image
-                        height={32}
-                        width={32}
-                        src="/sheep.png"
+                        height={45}
+                        width={45}
+                        src="/kloni-logo.svg"
                         alt="Your Company"
                       />
                     </div>

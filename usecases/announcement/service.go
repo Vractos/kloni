@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/Vractos/dolly/entity"
-	"github.com/Vractos/dolly/pkg/metrics"
-	"github.com/Vractos/dolly/usecases/common"
-	"github.com/Vractos/dolly/usecases/store"
-	"github.com/Vractos/dolly/utils"
+	"github.com/Vractos/kloni/entity"
+	"github.com/Vractos/kloni/pkg/metrics"
+	"github.com/Vractos/kloni/usecases/common"
+	"github.com/Vractos/kloni/usecases/store"
+	"github.com/Vractos/kloni/utils"
 	"go.uber.org/zap"
 )
 

@@ -9,16 +9,16 @@ import (
 
 	"time"
 
-	"github.com/Vractos/dolly/adapter/api/handler"
-	mdw "github.com/Vractos/dolly/adapter/api/middleware"
-	"github.com/Vractos/dolly/adapter/cache"
-	"github.com/Vractos/dolly/adapter/mercadolivre"
-	"github.com/Vractos/dolly/adapter/queue"
-	"github.com/Vractos/dolly/adapter/repository"
-	"github.com/Vractos/dolly/pkg/metrics"
-	"github.com/Vractos/dolly/usecases/announcement"
-	"github.com/Vractos/dolly/usecases/order"
-	"github.com/Vractos/dolly/usecases/store"
+	"github.com/Vractos/kloni/adapter/api/handler"
+	mdw "github.com/Vractos/kloni/adapter/api/middleware"
+	"github.com/Vractos/kloni/adapter/cache"
+	"github.com/Vractos/kloni/adapter/mercadolivre"
+	"github.com/Vractos/kloni/adapter/queue"
+	"github.com/Vractos/kloni/adapter/repository"
+	"github.com/Vractos/kloni/pkg/metrics"
+	"github.com/Vractos/kloni/usecases/announcement"
+	"github.com/Vractos/kloni/usecases/order"
+	"github.com/Vractos/kloni/usecases/store"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/go-chi/chi/v5"
@@ -158,7 +158,11 @@ func main() {
 	})
 
 	logger.Info("Listing on 80")
-	err = http.ListenAndServe(":80", r)
+	PORT := ":80"
+	if env := os.Getenv("APP_ENV"); env == "" || env == "development" {
+		PORT = ":8080"
+	}
+	err = http.ListenAndServe(PORT, r)
 	if err != nil {
 		logger.Panic(err.Error(), err)
 	}

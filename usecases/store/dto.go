@@ -1,6 +1,6 @@
 package store
 
-import "github.com/Vractos/dolly/entity"
+import "github.com/Vractos/kloni/entity"
 
 type RegisterStoreDtoInput struct {
 	Email string `json:"email"`

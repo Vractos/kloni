@@ -1,6 +1,6 @@
-CREATE DATABASE dolly;
+CREATE DATABASE kloni;
 
-\c dolly
+\c kloni
 
 -- SETING TIMEZONE TO UTC
 SET timezone = 'UTC';

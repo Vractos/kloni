@@ -7,9 +7,9 @@ package mock_store
 import (
 	reflect "reflect"
 
-	entity "github.com/Vractos/dolly/entity"
-	common "github.com/Vractos/dolly/usecases/common"
-	store "github.com/Vractos/dolly/usecases/store"
+	entity "github.com/Vractos/kloni/entity"
+	common "github.com/Vractos/kloni/usecases/common"
+	store "github.com/Vractos/kloni/usecases/store"
 	gomock "github.com/golang/mock/gomock"
 )
 

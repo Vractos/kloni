@@ -51,6 +51,6 @@ func (o *OpenTel) GetTracer() trace.Tracer {
 	otel.SetTracerProvider(tp)
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 
-	tracer := otel.Tracer("dolly")
+	tracer := otel.Tracer("kloni")
 	return tracer
 }
