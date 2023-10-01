@@ -3,7 +3,7 @@
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, } from 'react';
-import { createUrl } from '../_lib/utils/url';
+import { createUrl } from '@/lib/utils/url';
 
 
 export default function Search() {

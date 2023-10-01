@@ -1,6 +1,6 @@
 import Image from "next/image";
-import { formatCurrency } from "../../_lib/utils/formatter";
-import { getAnnouncements } from "../../api/handlers/announcements";
+import { formatCurrency } from "@/lib/utils/formatter";
+import { getAnnouncements } from "@/api/handlers/announcements";
 import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 

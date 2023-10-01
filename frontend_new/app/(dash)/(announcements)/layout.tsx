@@ -1,4 +1,4 @@
-import Search from "../../components/search";
+import Search from "@/components/search";
 
 export default function AnnouncementPage({
   children,
