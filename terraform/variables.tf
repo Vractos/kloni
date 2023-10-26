@@ -1,6 +1,6 @@
 variable "project" {
   type = string
-  default = "dolly"
+  default = "kloni"
 }
 
 variable "region" {

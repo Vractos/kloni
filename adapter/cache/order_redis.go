@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/Vractos/dolly/entity"
+	"github.com/Vractos/kloni/entity"
 	"github.com/go-redis/redis/v8"
 )
 

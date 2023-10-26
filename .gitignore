@@ -22,3 +22,4 @@ bin
 !.env.tpl
 !.env.example
 .vercel
+terraform/.op

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/Vractos/dolly/usecases/common"
+	"github.com/Vractos/kloni/usecases/common"
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
 )

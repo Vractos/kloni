@@ -1,8 +1,8 @@
 package announcement
 
 import (
-	"github.com/Vractos/dolly/usecases/common"
-	"github.com/Vractos/dolly/usecases/store"
+	"github.com/Vractos/kloni/usecases/common"
+	"github.com/Vractos/kloni/usecases/store"
 )
 
 type UseCase interface {

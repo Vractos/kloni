@@ -1,4 +1,4 @@
-module github.com/Vractos/dolly
+module github.com/Vractos/kloni
 
 go 1.18
 

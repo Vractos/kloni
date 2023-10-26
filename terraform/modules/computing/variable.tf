@@ -6,7 +6,7 @@ variable "ami" {
 
 variable "instance_name" {
   type = string
-  default = "dolly"
+  default = "kloni"
 }
 
 variable "sdk_account_id" {
@@ -34,7 +34,7 @@ variable "server_security_group" {
 
 variable "project" {
   type = string
-  default = "dolly"
+  default = "kloni"
 }
 
 variable "region" {

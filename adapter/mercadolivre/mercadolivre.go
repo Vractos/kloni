@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Vractos/dolly/pkg/metrics"
+	"github.com/Vractos/kloni/pkg/metrics"
 	"github.com/go-playground/validator/v10"
 )
 
