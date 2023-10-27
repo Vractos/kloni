@@ -22,4 +22,6 @@ bin
 !.env.tpl
 !.env.example
 .vercel
-terraform/.op
+
+# Ignores 1password config folder in any directory
+**/.op/

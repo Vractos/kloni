@@ -172,6 +172,21 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 			}
 		}
 		for _, cln := range *clones {
+			if cln.Variations != nil {
+				for _, variation := range cln.Variations {
+					if variation.AvailableQuantity > 0 {
+						if !utils.Contains(&itsOk, variation.ID) {
+							anns = append(anns, common.OrderItem{
+								ID:       cln.ID,
+								Title:    cln.Title,
+								Sku:      cln.Sku,
+								Quantity: cln.Quantity - item.Quantity,
+							})
+						}
+						break
+					}
+				}
+			}
 			if !utils.Contains(&itsOk, cln.ID) {
 				anns = append(anns, common.OrderItem{
 					ID:       cln.ID,

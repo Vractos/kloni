@@ -131,6 +131,23 @@ func (m *MercadoLivre) GetAnnouncements(ids []string, accessToken string) (*[]co
 				break
 			}
 		}
+
+		var variations []struct {
+			ID                int
+			AvailableQuantity int
+		}
+		for _, v := range a.Body.Variations {
+			{
+				variations = append(variations, struct {
+					ID                int
+					AvailableQuantity int
+				}{
+					ID:                v.ID,
+					AvailableQuantity: v.AvailableQuantity,
+				})
+			}
+		}
+
 		meliAnnouncement[i] = common.MeliAnnouncement{
 			ID:           a.Body.ID,
 			Title:        a.Body.Title,
@@ -138,9 +155,9 @@ func (m *MercadoLivre) GetAnnouncements(ids []string, accessToken string) (*[]co
 			Price:        a.Body.Price,
 			ThumbnailURL: a.Body.Thumbnail,
 			Sku:          sku,
+			Variations:   variations,
 			Link:         a.Body.Permalink,
 		}
-
 	}
 
 	return &meliAnnouncement, nil
