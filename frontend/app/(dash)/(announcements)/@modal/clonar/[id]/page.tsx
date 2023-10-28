@@ -36,14 +36,14 @@ export default function CloneForm({
   const router = useRouter();
 
   useEffect(() => {
-    if (state.fails) {
+    if (state?.fails) {
       setFailMessage(true);
       setTimeout(() => {
         setFailMessage(false);
       }, 2500);
     }
   }
-  , [state.fails]);
+  ,[state?.fails]);
   
   const addInput = () => {
     setInputs([...inputs, ""]);
