@@ -96,6 +96,7 @@ export default function CloneForm({
       <Modal isOpen={open}>
         <form
           action={formAction}
+          method="POST"
           className="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl md:col-span-2 pt-6"
         >
           <input type="hidden" name="id" value={params.id} />

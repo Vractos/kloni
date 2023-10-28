@@ -46,25 +46,21 @@ async function getAnnouncements(sku: string): Promise<IAnnouncement[]> {
   }
 }
 
-async function cloneAnnouncement(rootID: string, titles: string[]): Promise<void> {
-  const { accessToken } = await getAccessToken()
-
+async function cloneAnnouncement(rootID: string, titles: string[], accessToken: string): Promise<void> {
   const body = {
     root_id: rootID,
     titles: titles,
   }
 
   try {
-    const res = await fetch(`${process.env.API_URL}/announcement/clone`, {
+    const res = await fetch(`${process.env.API_URL}/announcement`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
       },
       body: JSON.stringify(body)
     })
 
-    console.log(res.status)
     if (!res.ok) {
       throw new Error('Failed to clone announcement')
     }
