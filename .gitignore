@@ -21,4 +21,5 @@ bin
 .env*
 !.env.tpl
 !.env.example
+!.env.production
 .vercel
