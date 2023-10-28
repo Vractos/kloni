@@ -10,7 +10,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
 import { Dialog, Transition } from "@headlessui/react";
-import { experimental_useFormState as useFormState } from "react-dom";
+// @ts-ignore
+import { useFormState } from "react-dom";
 import SubmitButton from "@/components/submitButton";
 import Notification from "@/components/notification";
 import { XCircleIcon } from '@heroicons/react/20/solid';

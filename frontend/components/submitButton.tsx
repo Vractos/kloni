@@ -1,6 +1,7 @@
 "use client";
 
-import { experimental_useFormStatus as useFormStatus } from "react-dom";
+// @ts-ignore
+import { useFormStatus } from "react-dom";
 
 export default function SubmitButton({ text }: { text: string }) {
   const { pending } = useFormStatus();

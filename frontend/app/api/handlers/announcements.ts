@@ -3,8 +3,6 @@ import 'server-only';
 import { IAnnouncement } from '../../../lib/interfaces/announcements'
 import { getAccessToken } from '@auth0/nextjs-auth0/edge';
 
-export const runtime = 'edge';
-
 async function getAnnouncements(sku: string): Promise<IAnnouncement[]> {
   const { accessToken } = await getAccessToken()
 
@@ -66,6 +64,7 @@ async function cloneAnnouncement(rootID: string, titles: string[]): Promise<void
       body: JSON.stringify(body)
     })
 
+    console.log(res.status)
     if (!res.ok) {
       throw new Error('Failed to clone announcement')
     }
@@ -74,4 +73,5 @@ async function cloneAnnouncement(rootID: string, titles: string[]): Promise<void
   }
 }
 
+export const runtime = 'edge';
 export { getAnnouncements, cloneAnnouncement }
