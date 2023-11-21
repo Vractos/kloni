@@ -7,8 +7,8 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/Vractos/dolly/pkg/metrics"
-	"github.com/Vractos/dolly/usecases/order"
+	"github.com/Vractos/kloni/pkg/metrics"
+	"github.com/Vractos/kloni/usecases/order"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"

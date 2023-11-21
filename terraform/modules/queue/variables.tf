@@ -15,5 +15,5 @@ variable "sqs_queue_allowed_user" {
 
 variable "project" {
   type = string
-  default = "dolly"
+  default = "kloni"
 }

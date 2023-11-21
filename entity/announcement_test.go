@@ -3,7 +3,7 @@ package entity
 import (
 	"testing"
 
-	"github.com/Vractos/dolly/usecases/common"
+	"github.com/Vractos/kloni/usecases/common"
 	"github.com/google/go-cmp/cmp"
 )
 

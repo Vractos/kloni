@@ -7,7 +7,7 @@ COPY go.mod go.sum ./
 RUN go mod download && go mod verify
 
 COPY . .
-RUN CGO_ENABLED=0 go build -v -o ./bin/dolly
+RUN CGO_ENABLED=0 go build -v -o ./bin/kloni
 
 # Final Image
 FROM alpine
@@ -64,8 +64,8 @@ ENV ORDER_QUEUE_URL ${order_queue_url}
 ARG aws_region
 ENV AWS_REGION ${aws_region}
 
-COPY --from=builder /usr/src/app/bin/dolly ./
+COPY --from=builder /usr/src/app/bin/kloni ./
 
 EXPOSE 80
-ENTRYPOINT [ "./dolly" ]
+ENTRYPOINT [ "./kloni" ]
 

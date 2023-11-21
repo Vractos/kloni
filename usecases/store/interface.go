@@ -1,8 +1,8 @@
 package store
 
 import (
-	"github.com/Vractos/dolly/entity"
-	"github.com/Vractos/dolly/usecases/common"
+	"github.com/Vractos/kloni/entity"
+	"github.com/Vractos/kloni/usecases/common"
 )
 
 type Credentials struct {
@@ -28,14 +28,14 @@ type UseCase interface {
 #########################################
 */
 
-//Repository reader interface
+// Repository reader interface
 type RepoReader interface {
 	Get(id string) (*entity.Store, error)
 	RetrieveMeliCredentialsFromStoreID(id entity.ID) (*common.MeliCredential, error)
 	RetrieveMeliCredentialsFromMeliUserID(id string) (*entity.ID, *common.MeliCredential, error)
 }
 
-//Repository writer interface
+// Repository writer interface
 type RepoWriter interface {
 	Create(e *entity.Store) (entity.ID, error)
 	RegisterMeliCredential(id entity.ID, c *common.MeliCredential) error

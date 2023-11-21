@@ -4,7 +4,6 @@ export default async function Example() {
   const session = await getSession();
   const user = session?.user;
 
-
   return (
     <>
       <main className="px-4 py-16 sm:px-6 lg:flex-auto lg:px-0 lg:py-20">

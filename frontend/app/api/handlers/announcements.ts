@@ -3,6 +3,7 @@ import 'server-only';
 import { IAnnouncement } from '../../../lib/interfaces/announcements'
 import { getAccessToken } from '@auth0/nextjs-auth0/edge';
 
+
 async function getAnnouncements(sku: string): Promise<IAnnouncement[]> {
   const { accessToken } = await getAccessToken()
 
@@ -57,6 +58,7 @@ async function cloneAnnouncement(rootID: string, titles: string[], accessToken: 
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
+
       },
       body: JSON.stringify(body)
     })

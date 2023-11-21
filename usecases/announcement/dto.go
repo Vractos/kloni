@@ -1,7 +1,7 @@
 package announcement
 
 import (
-	"github.com/Vractos/dolly/entity"
+	"github.com/Vractos/kloni/entity"
 )
 
 type CloneAnnouncementDtoInput struct {

@@ -7,9 +7,9 @@ package mock_announcement
 import (
 	reflect "reflect"
 
-	announcement "github.com/Vractos/dolly/usecases/announcement"
-	common "github.com/Vractos/dolly/usecases/common"
-	store "github.com/Vractos/dolly/usecases/store"
+	announcement "github.com/Vractos/kloni/usecases/announcement"
+	common "github.com/Vractos/kloni/usecases/common"
+	store "github.com/Vractos/kloni/usecases/store"
 	gomock "github.com/golang/mock/gomock"
 )
 

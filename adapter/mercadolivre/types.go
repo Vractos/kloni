@@ -276,9 +276,30 @@ type AnnouncementsMultiGet []struct {
 			AttributeGroupName string `json:"attribute_group_name,omitempty"`
 			ValueType          string `json:"value_type,omitempty"`
 		} `json:"attributes,omitempty"`
-		Warnings            []interface{} `json:"warnings,omitempty"`
-		ListingSource       string        `json:"listing_source,omitempty"`
-		Variations          []interface{} `json:"variations,omitempty"`
+		Warnings      []interface{} `json:"warnings,omitempty"`
+		ListingSource string        `json:"listing_source,omitempty"`
+		Variations    []struct {
+			ID                    int     `json:"id,omitempty"`
+			Price                 float64 `json:"price,omitempty"`
+			AttributeCombinations []struct {
+				ID          string `json:"id,omitempty"`
+				Name        string `json:"name,omitempty"`
+				ValueID     string `json:"value_id,omitempty"`
+				ValueName   string `json:"value_name,omitempty"`
+				ValueStruct any    `json:"value_struct,omitempty"`
+				Values      []struct {
+					ID     string `json:"id,omitempty"`
+					Name   string `json:"name,omitempty"`
+					Struct any    `json:"struct,omitempty"`
+				} `json:"values,omitempty"`
+				ValueType string `json:"value_type,omitempty"`
+			} `json:"attribute_combinations,omitempty"`
+			AvailableQuantity int      `json:"available_quantity,omitempty"`
+			SoldQuantity      int      `json:"sold_quantity,omitempty"`
+			SaleTerms         []any    `json:"sale_terms,omitempty"`
+			PictureIds        []string `json:"picture_ids,omitempty"`
+			CatalogProductID  any      `json:"catalog_product_id,omitempty"`
+		} `json:"variations,omitempty"`
 		Status              string        `json:"status,omitempty"`
 		SubStatus           []interface{} `json:"sub_status,omitempty"`
 		Tags                []string      `json:"tags,omitempty"`

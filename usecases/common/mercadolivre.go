@@ -36,10 +36,11 @@ const (
 )
 
 type OrderItem struct {
-	ID       string
-	Title    string
-	Sku      string
-	Quantity int
+	ID          string
+	Title       string
+	Sku         string
+	Quantity    int
+	variationID int
 }
 
 type MeliOrder struct {
@@ -64,7 +65,11 @@ type MeliAnnouncement struct {
 	Pictures      []string
 	Description   string
 	Channels      []string
-	SaleTerms     []struct {
+	Variations    []struct {
+		ID                int
+		AvailableQuantity int
+	}
+	SaleTerms []struct {
 		ID          string
 		Name        string
 		ValueID     interface{}

@@ -1,10 +1,10 @@
 resource "aws_elasticache_subnet_group" "redis_subnet" {
-  name = "dolly-redis-subnet"
+  name = "kloni-redis-subnet"
   subnet_ids = [var.subnet_id]
 }
 
 resource "aws_elasticache_cluster" "redis" {
-  cluster_id = "dolly-redis"
+  cluster_id = "kloni-redis"
   engine = "redis"
   node_type = var.node_type
   num_cache_nodes = var.num_cache_nodes

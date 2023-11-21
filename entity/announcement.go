@@ -3,8 +3,8 @@ package entity
 import (
 	"math"
 
-	"github.com/Vractos/dolly/usecases/common"
-	"github.com/Vractos/dolly/utils"
+	"github.com/Vractos/kloni/usecases/common"
+	"github.com/Vractos/kloni/utils"
 )
 
 type ListingType string

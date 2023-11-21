@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/Vractos/dolly/entity"
-	"github.com/Vractos/dolly/pkg/metrics"
-	"github.com/Vractos/dolly/usecases/common"
+	"github.com/Vractos/kloni/entity"
+	"github.com/Vractos/kloni/pkg/metrics"
+	"github.com/Vractos/kloni/usecases/common"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"

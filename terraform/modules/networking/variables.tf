@@ -1,6 +1,6 @@
 variable "vpc_name" {
   type = string
-  default = "dolly"
+  default = "kloni"
 }
 
 variable "my_public_ip" {
@@ -11,5 +11,5 @@ variable "my_public_ip" {
 
 variable "project" {
   type = string
-  default = "dolly"
+  default = "kloni"
 }

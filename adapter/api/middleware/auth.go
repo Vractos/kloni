@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Vractos/dolly/pkg/contexttools"
-	"github.com/Vractos/dolly/pkg/metrics"
+	"github.com/Vractos/kloni/pkg/contexttools"
+	"github.com/Vractos/kloni/pkg/metrics"
 	jwtmiddleware "github.com/auth0/go-jwt-middleware/v2"
 	"github.com/auth0/go-jwt-middleware/v2/jwks"
 	"github.com/auth0/go-jwt-middleware/v2/validator"
