@@ -3,7 +3,6 @@ import 'server-only';
 import { IAnnouncement } from '../../../lib/interfaces/announcements'
 import { getAccessToken } from '@auth0/nextjs-auth0/edge';
 
-export const runtime = 'edge';
 
 async function getAnnouncements(sku: string): Promise<IAnnouncement[]> {
   const { accessToken } = await getAccessToken()
@@ -48,20 +47,18 @@ async function getAnnouncements(sku: string): Promise<IAnnouncement[]> {
   }
 }
 
-async function cloneAnnouncement(rootID: string, titles: string[]): Promise<void> {
-  const { accessToken } = await getAccessToken()
-
+async function cloneAnnouncement(rootID: string, titles: string[], accessToken: string): Promise<void> {
   const body = {
     root_id: rootID,
     titles: titles,
   }
 
   try {
-    const res = await fetch(`${process.env.API_URL}/announcement/clone`, {
+    const res = await fetch(`${process.env.API_URL}/announcement`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
+
       },
       body: JSON.stringify(body)
     })
@@ -74,4 +71,5 @@ async function cloneAnnouncement(rootID: string, titles: string[]): Promise<void
   }
 }
 
+export const runtime = 'edge';
 export { getAnnouncements, cloneAnnouncement }

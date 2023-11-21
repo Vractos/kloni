@@ -10,7 +10,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
 import { Dialog, Transition } from "@headlessui/react";
-import { experimental_useFormState as useFormState } from "react-dom";
+// @ts-ignore
+import { useFormState } from "react-dom";
 import SubmitButton from "@/components/submitButton";
 import Notification from "@/components/notification";
 import { XCircleIcon } from '@heroicons/react/20/solid';
@@ -35,14 +36,14 @@ export default function CloneForm({
   const router = useRouter();
 
   useEffect(() => {
-    if (state.fails) {
+    if (state?.fails) {
       setFailMessage(true);
       setTimeout(() => {
         setFailMessage(false);
       }, 2500);
     }
   }
-  , [state.fails]);
+  ,[state?.fails]);
   
   const addInput = () => {
     setInputs([...inputs, ""]);
@@ -95,6 +96,7 @@ export default function CloneForm({
       <Modal isOpen={open}>
         <form
           action={formAction}
+          method="POST"
           className="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl md:col-span-2 pt-6"
         >
           <input type="hidden" name="id" value={params.id} />
