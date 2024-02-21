@@ -14,6 +14,6 @@ export default withMiddlewareAuthRequired(
 
   export const config = {
     matcher: [
-      '/((?!api|login|_next/static|_next/image|favicon.ico).*)',
+      '/((?!api|login|sign-up|_next/static|_next/image|favicon.ico).*)',
     ],
   }
