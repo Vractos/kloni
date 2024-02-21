@@ -163,10 +163,28 @@ func (m *MercadoLivre) GetAnnouncements(ids []string, accessToken string) (*[]co
 	return &meliAnnouncement, nil
 }
 
-func (m *MercadoLivre) UpdateQuantity(quantity int, announcementId, accessToken string) error {
+func (m *MercadoLivre) UpdateQuantity(quantity int, announcementId, accessToken string, variationIDs ...int) error {
 	urlPath := fmt.Sprintf("%s/items/%s", m.Endpoint, announcementId)
-	bodyRequest := map[string]interface{}{
-		"available_quantity": quantity,
+
+	var bodyRequest map[string]interface{}
+
+	if len(variationIDs) > 0 {
+		variations := make([]map[string]interface{}, len(variationIDs))
+		for i, v := range variationIDs {
+			variations[i] = map[string]interface{}{
+				"id":                 v,
+				"available_quantity": quantity,
+			}
+		}
+
+		bodyRequest = map[string]interface{}{
+			"variations": variations,
+		}
+
+	} else {
+		bodyRequest = map[string]interface{}{
+			"available_quantity": quantity,
+		}
 	}
 
 	jsonBody, err := json.Marshal(bodyRequest)
@@ -215,6 +233,7 @@ func (m *MercadoLivre) UpdateQuantity(quantity int, announcementId, accessToken 
 			zap.String("meli_erro", updateAnnouncementsError.Error),
 			zap.Any("cause", updateAnnouncementsError.Cause),
 			zap.Int("status_code", resp.StatusCode),
+			zap.String("variation_ids", fmt.Sprintf("%v", variationIDs)),
 		)
 		return errors.New("fail to update the quantity")
 	}

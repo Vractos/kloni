@@ -81,6 +81,7 @@ func (m *MercadoLivre) FetchOrder(orderId string, accessToken string) (*common.M
 		items[i].Title = o.Item.Title
 		items[i].Quantity = o.Quantity
 		items[i].Sku = o.Item.SellerSku
+		items[i].VariationID = o.Item.VariationID
 	}
 
 	return &common.MeliOrder{
