@@ -32,6 +32,12 @@ type saleTerms struct {
 	ID        string      `json:"id,omitempty"`
 	ValueName interface{} `json:"value_name,omitempty"`
 }
+
+type Variation struct {
+	ID                int `json:"id,omitempty"`
+	AvailableQuantity int `json:"available_quantity,omitempty"`
+}
+
 type Announcement struct {
 	Title             string       `json:"title,omitempty"`
 	AvailableQuantity int          `json:"available_quantity,omitempty"`
@@ -45,8 +51,12 @@ type Announcement struct {
 	Attributes        []attributes `json:"attributes,omitempty"`
 	Pictures          []pictures   `json:"pictures,omitempty"`
 	SaleTerms         []saleTerms  `json:"sale_terms,omitempty"`
+	Variations        []Variation  `json:"variations,omitempty"`
 }
 
+// NewAnnouncement creates a new Announcement object based on the provided rootAnn MeliAnnouncement.
+// It converts the attributes, pictures, and sale terms from the rootAnn into the corresponding fields of the Announcement object.
+// Returns the created Announcement object and an error if any.
 func NewAnnouncement(rootAnn *common.MeliAnnouncement) (*Announcement, error) {
 	att := make([]attributes, len(rootAnn.Attributes))
 	for i, at := range rootAnn.Attributes {
@@ -95,4 +105,18 @@ func (a *Announcement) ChangeTitle(title string) {
 func (a *Announcement) GenerateClassic() {
 	a.ListingTypeID = ListingType(Classic)
 	a.Price = math.Round(utils.Percent(95, a.Price)*100) / 100
+}
+
+func (a *Announcement) UpdateQuantity(quantity int, variationIDs ...int) {
+	if len(variationIDs) > 0 {
+		for _, vID := range variationIDs {
+			for i, v := range a.Variations {
+				if v.ID == vID {
+					a.Variations[i].AvailableQuantity = quantity
+				}
+			}
+		}
+		return
+	}
+	a.AvailableQuantity = quantity
 }
