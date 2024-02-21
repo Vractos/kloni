@@ -14,10 +14,10 @@ import (
 	mock_order "github.com/Vractos/kloni/usecases/order/mock"
 	"github.com/Vractos/kloni/usecases/store"
 	mock_store "github.com/Vractos/kloni/usecases/store/mock"
-	gomock "github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
+	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"
 )
 
@@ -151,6 +151,126 @@ func TestProcessOrder(t *testing.T) {
 						Title:    "test-title",
 						Quantity: 1,
 						Sku:      "test-sku",
+					},
+				},
+			},
+			OrderMatcher: &OrderMatcher{},
+		},
+		{
+			name:         "default scenario with variation",
+			storeId:      storeId,
+			orderMessage: defaultOrderMessage,
+			meliOrder: &common.MeliOrder{
+				ID:          "20210101000000",
+				DateCreated: "2022-10-30T16:19:20.129Z",
+				Status:      common.Paid,
+				Items: []common.OrderItem{
+					{
+						ID:       "1",
+						Title:    "test-title1",
+						Sku:      "test-sku",
+						Quantity: 1,
+					},
+				},
+			},
+			meliCredentials: defaultMeliCredentials,
+			orderAnnouncementsClones: [][]common.MeliAnnouncement{
+				{
+					{
+						ID:       "1",
+						Title:    "test-title1",
+						Quantity: 1,
+						Price:    1.0,
+						Sku:      "test-sku",
+					},
+					{
+						ID:       "2",
+						Title:    "test-title2",
+						Quantity: 1,
+						Price:    1.0,
+						Sku:      "test-sku",
+						Variations: []struct {
+							ID                int
+							AvailableQuantity int
+						}{
+							{
+								ID:                222,
+								AvailableQuantity: 1,
+							},
+						},
+					},
+				},
+			},
+			odr: &entity.Order{
+				StoreID:       storeId,
+				MarketplaceID: "20210101000000",
+				Status:        "paid",
+				Items: []entity.OrderItem{
+					{
+						Title:    "test-title1",
+						Quantity: 1,
+						Sku:      "test-sku",
+					},
+				},
+			},
+			OrderMatcher: &OrderMatcher{},
+		},
+		{
+			name:         "default scenario where the sold item is a variation",
+			storeId:      storeId,
+			orderMessage: defaultOrderMessage,
+			meliOrder: &common.MeliOrder{
+				ID:          "20210101000000",
+				DateCreated: "2022-10-30T16:19:20.129Z",
+				Status:      common.Paid,
+				Items: []common.OrderItem{
+					{
+						ID:          "1",
+						Title:       "test-title1",
+						Sku:         "test-sku",
+						Quantity:    1,
+						VariationID: 111,
+					},
+				},
+			},
+			meliCredentials: defaultMeliCredentials,
+			orderAnnouncementsClones: [][]common.MeliAnnouncement{
+				{
+					{
+						ID:       "1",
+						Title:    "test-title1",
+						Quantity: 1,
+						Price:    1.0,
+						Sku:      "test-sku",
+						Variations: []struct {
+							ID                int
+							AvailableQuantity int
+						}{
+							{
+								ID:                111,
+								AvailableQuantity: 1,
+							},
+						},
+					},
+					{
+						ID:       "2",
+						Title:    "test-title2",
+						Quantity: 1,
+						Price:    1.0,
+						Sku:      "test-sku",
+					},
+				},
+			},
+			odr: &entity.Order{
+				StoreID:       storeId,
+				MarketplaceID: "20210101000000",
+				Status:        "paid",
+				Items: []entity.OrderItem{
+					{
+						Title:       "test-title1",
+						Quantity:    1,
+						Sku:         "test-sku",
+						VariationID: 111,
 					},
 				},
 			},
@@ -319,6 +439,13 @@ func TestProcessOrder(t *testing.T) {
 			}
 			for _, anns := range tt.orderAnnouncementsClones {
 				for i := 1; i < len(anns); i++ {
+					if anns[i].Variations != nil {
+						for _, variation := range anns[i].Variations {
+							mocks.mockAnnUseCase.EXPECT().UpdateQuantity(
+								anns[i].ID, variation.AvailableQuantity-anns[0].Quantity, *tt.meliCredentials, variation.ID).Return(nil)
+						}
+						continue
+					}
 					mocks.mockAnnUseCase.EXPECT().UpdateQuantity(
 						anns[i].ID, anns[i].Quantity-anns[0].Quantity, *tt.meliCredentials).Return(nil)
 				}
@@ -653,7 +780,7 @@ func TestProcessOrder(t *testing.T) {
 				}
 				odrErro := &order.OrderError{
 					Message: "Couldn't change the announcements",
-					AnnouncementsError: []common.OrderItem{
+					AnnouncementsError: []common.MeliAnnouncement{
 						{
 							ID:       anns[1].ID,
 							Title:    anns[1].Title,

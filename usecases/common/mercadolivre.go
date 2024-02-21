@@ -40,7 +40,7 @@ type OrderItem struct {
 	Title       string
 	Sku         string
 	Quantity    int
-	variationID int
+	VariationID int
 }
 
 type MeliOrder struct {
@@ -137,7 +137,7 @@ type meliReaderAnnouncement interface {
 }
 
 type meliWriterAnnouncement interface {
-	UpdateQuantity(quantity int, announcementId, accessToken string) error
+	UpdateQuantity(quantity int, announcementId, accessToken string, variationIDs ...int) error
 	PublishAnnouncement(announcementJson []byte, accessToken string) (ID *string, err error)
 	AddDescription(description, announcementId, accessToken string) error
 }
