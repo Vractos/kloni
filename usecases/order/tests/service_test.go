@@ -95,6 +95,24 @@ func TestProcessOrder(t *testing.T) {
 			},
 		},
 	}
+	defaultMeliAnnouncementsClones := [][]common.MeliAnnouncement{
+		{
+			{
+				ID:       "1",
+				Title:    "test-title",
+				Quantity: 1,
+				Price:    1.0,
+				Sku:      "test-sku",
+			},
+			{
+				ID:       "2",
+				Title:    "test-title2",
+				Quantity: 1,
+				Price:    1.0,
+				Sku:      "test-sku",
+			},
+		},
+	}
 
 	newOrderScenarios := []struct {
 		name                     string
@@ -592,6 +610,27 @@ func TestProcessOrder(t *testing.T) {
 			errMessage: "error getting order from meli",
 		},
 		{
+			name:         "error retrieving announcements and the error type doesn't match any of the expected",
+			orderMessage: defaultOrderMessage,
+			mockCall: func(m *Mocks) {
+				annErr := errors.New("error retrieving announcements")
+				gomock.InOrder(
+					m.mockOrderCache.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
+					m.mockOrderRepo.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
+					m.mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(defaultOrderMessage.Store).Return(defaultMeliCredentials, nil),
+					m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, defaultMeliCredentials.MeliAccessToken).Return(defaultMeliOrder, nil),
+					m.mockAnnUseCase.EXPECT().RetrieveAnnouncements(defaultMeliOrder.Items[0].Sku, *defaultMeliCredentials).Return(nil, annErr),
+					m.mockLogger.EXPECT().Error(
+						"Error in retrieving the order product clones",
+						annErr,
+						zap.String("order_id", defaultOrderMessage.OrderId),
+						zap.String("sku", defaultMeliOrder.Items[0].Sku),
+					),
+				)
+			},
+			errMessage: "error retrieving announcements",
+		},
+		{
 			name:         "error retrieving announcements and unable to retry",
 			orderMessage: defaultOrderMessage,
 			mockCall: func(m *Mocks) {
@@ -649,8 +688,13 @@ func TestProcessOrder(t *testing.T) {
 						zap.String("order_id", defaultOrderMessage.OrderId),
 						zap.String("sku", defaultMeliOrder.Items[0].Sku),
 					),
-					m.mockAnnUseCase.EXPECT().RetrieveAnnouncements(defaultMeliOrder.Items[0].Sku, *defaultMeliCredentials).Return(&[]common.MeliAnnouncement{}, nil),
-					m.mockAnnUseCase.EXPECT().UpdateQuantity(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes(),
+					m.mockAnnUseCase.EXPECT().RetrieveAnnouncements(defaultMeliOrder.Items[0].Sku, *defaultMeliCredentials).Return(&defaultMeliAnnouncementsClones[0], nil),
+
+					m.mockAnnUseCase.EXPECT().UpdateQuantity(
+						defaultMeliAnnouncementsClones[0][1].ID,
+						defaultMeliAnnouncementsClones[0][1].Quantity-defaultMeliOrder.Items[0].Quantity,
+						*defaultMeliCredentials,
+					).Return(nil),
 					m.mockOrderRepo.EXPECT().RegisterOrder(gomock.Any()).Return(nil),
 					m.mockOrderCache.EXPECT().SetOrder(gomock.Any()).Return(nil),
 					m.mockOrderQueue.EXPECT().DeleteOrderNotification(defaultOrderMessage.ReceiptHandle).Return(nil),
