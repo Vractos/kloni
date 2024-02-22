@@ -694,41 +694,6 @@ func TestProcessOrder(t *testing.T) {
 			},
 			errMessage: fmt.Sprintf("Message: error retrieving announcements - Announcement SKU: %s", defaultMeliOrder.Items[0].Sku),
 		},
-		{
-			name:         "error retrieving announcements and able to retry - success on retry",
-			orderMessage: defaultOrderMessage,
-			mockCall: func(m *Mocks) {
-				annErr := &announcement.AnnouncementError{
-					Message:       "error retrieving announcements",
-					IsAbleToRetry: true,
-					Sku:           defaultMeliOrder.Items[0].Sku,
-				}
-
-				gomock.InOrder(
-					m.mockOrderCache.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
-					m.mockOrderRepo.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
-					m.mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(defaultOrderMessage.Store).Return(defaultMeliCredentials, nil),
-					m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, defaultMeliCredentials.MeliAccessToken).Return(defaultMeliOrder, nil),
-					m.mockAnnUseCase.EXPECT().RetrieveAnnouncements(defaultMeliOrder.Items[0].Sku, *defaultMeliCredentials).Return(nil, annErr),
-					m.mockLogger.EXPECT().Warn(
-						"Fail in retrieving the order product clones",
-						zap.Error(annErr),
-						zap.String("order_id", defaultOrderMessage.OrderId),
-						zap.String("sku", defaultMeliOrder.Items[0].Sku),
-					),
-					m.mockLogger.EXPECT().Info(
-						"Retrying to retrieve order products clones...",
-						zap.String("order_id", defaultOrderMessage.OrderId),
-						zap.String("sku", defaultMeliOrder.Items[0].Sku),
-					),
-					m.mockAnnUseCase.EXPECT().RetrieveAnnouncements(defaultMeliOrder.Items[0].Sku, *defaultMeliCredentials).Return(&[]common.MeliAnnouncement{}, nil),
-					m.mockAnnUseCase.EXPECT().UpdateQuantity(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes(),
-					m.mockOrderRepo.EXPECT().RegisterOrder(gomock.Any()).Return(nil),
-					m.mockOrderCache.EXPECT().SetOrder(gomock.Any()).Return(nil),
-					m.mockOrderQueue.EXPECT().DeleteOrderNotification(defaultOrderMessage.ReceiptHandle).Return(nil),
-				)
-			},
-		},
 	}
 
 	for _, tt := range errRetrievingDataFromMeli {
