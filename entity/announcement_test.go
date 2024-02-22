@@ -276,16 +276,6 @@ func TestNewAnnouncement(t *testing.T) {
 						ValueName: "dias",
 					},
 				},
-				Variations: []Variation{
-					{
-						ID:                1,
-						AvailableQuantity: 5,
-					},
-					{
-						ID:                2,
-						AvailableQuantity: 10,
-					},
-				},
 			},
 			wantErr: false,
 		},
@@ -296,7 +286,6 @@ func TestNewAnnouncement(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewAnnouncement() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			tt.want.Variations = nil
 			if !cmp.Equal(got, tt.want) {
 				t.Errorf("NewAnnouncement() diff:\n%v", cmp.Diff(got, tt.want))
 			}
@@ -304,7 +293,6 @@ func TestNewAnnouncement(t *testing.T) {
 		t.Run("generating classic announcement", func(t *testing.T) {
 			tt.want.ListingTypeID = "gold_special"
 			tt.want.Price = 95.0
-			tt.want.Variations = nil
 			got.GenerateClassic()
 			if !cmp.Equal(got, tt.want) {
 				t.Errorf("GenerateClassic() diff:\n%v", cmp.Diff(got, tt.want))
@@ -312,46 +300,9 @@ func TestNewAnnouncement(t *testing.T) {
 		})
 		t.Run("changing title", func(t *testing.T) {
 			tt.want.Title = tt.newTitle
-			tt.want.Variations = nil
 			got.ChangeTitle(tt.newTitle)
 			if !cmp.Equal(got, tt.want) {
 				t.Errorf("ChangeTitle() diff:\n%v", cmp.Diff(got, tt.want))
-			}
-		})
-		t.Run("updating quantity", func(t *testing.T) {
-			tt.want.AvailableQuantity = 10
-			got.UpdateQuantity(10)
-			if !cmp.Equal(got, tt.want) {
-				t.Errorf("UpdateQuantity() diff:\n%v", cmp.Diff(got, tt.want))
-			}
-		})
-		t.Run("updating quantity with variation", func(t *testing.T) {
-			if tt.want.Variations == nil {
-				tt.want.Variations = nil
-			} else {
-				tt.want.Variations = []Variation{
-					{
-						ID:                1,
-						AvailableQuantity: 5,
-					},
-					{
-						ID:                2,
-						AvailableQuantity: 5,
-					},
-				}
-			}
-			got.UpdateQuantity(5, 1, 2)
-			if !cmp.Equal(got, tt.want) {
-				t.Errorf("UpdateQuantity() diff:\n%v", cmp.Diff(got, tt.want))
-			}
-		})
-		t.Run("updating quantity with variation not found", func(t *testing.T) {
-			if tt.want.Variations == nil {
-				tt.want.Variations = nil
-			}
-			got.UpdateQuantity(5, 3)
-			if !cmp.Equal(got, tt.want) {
-				t.Errorf("UpdateQuantity() diff:\n%v", cmp.Diff(got, tt.want))
 			}
 		})
 	}

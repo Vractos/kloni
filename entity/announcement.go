@@ -106,17 +106,3 @@ func (a *Announcement) GenerateClassic() {
 	a.ListingTypeID = ListingType(Classic)
 	a.Price = math.Round(utils.Percent(95, a.Price)*100) / 100
 }
-
-func (a *Announcement) UpdateQuantity(quantity int, variationIDs ...int) {
-	if len(variationIDs) > 0 {
-		for _, vID := range variationIDs {
-			for i, v := range a.Variations {
-				if v.ID == vID {
-					a.Variations[i].AvailableQuantity = quantity
-				}
-			}
-		}
-		return
-	}
-	a.AvailableQuantity = quantity
-}
