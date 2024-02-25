@@ -64,6 +64,12 @@ ENV ORDER_QUEUE_URL ${order_queue_url}
 ARG aws_region
 ENV AWS_REGION ${aws_region}
 
+ARG aws_access_key_id
+ENV AWS_ACCESS_KEY_ID ${aws_access_key_id}
+
+ARG aws_secret_access_key
+ENV AWS_SECRET_ACCESS_KEY ${aws_secret_access_key}
+
 COPY --from=builder /usr/src/app/bin/kloni ./
 
 EXPOSE 80
