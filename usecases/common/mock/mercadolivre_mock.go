@@ -154,18 +154,18 @@ func (m *MockmeliReaderAnnouncement) EXPECT() *MockmeliReaderAnnouncementMockRec
 }
 
 // GetAnnouncement mocks base method.
-func (m *MockmeliReaderAnnouncement) GetAnnouncement(id string) (*common.MeliAnnouncement, error) {
+func (m *MockmeliReaderAnnouncement) GetAnnouncement(id, accessToken string) (*common.MeliAnnouncement, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAnnouncement", id)
+	ret := m.ctrl.Call(m, "GetAnnouncement", id, accessToken)
 	ret0, _ := ret[0].(*common.MeliAnnouncement)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAnnouncement indicates an expected call of GetAnnouncement.
-func (mr *MockmeliReaderAnnouncementMockRecorder) GetAnnouncement(id any) *gomock.Call {
+func (mr *MockmeliReaderAnnouncementMockRecorder) GetAnnouncement(id, accessToken any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAnnouncement", reflect.TypeOf((*MockmeliReaderAnnouncement)(nil).GetAnnouncement), id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAnnouncement", reflect.TypeOf((*MockmeliReaderAnnouncement)(nil).GetAnnouncement), id, accessToken)
 }
 
 // GetAnnouncements mocks base method.
@@ -337,18 +337,18 @@ func (mr *MockMercadoLivreMockRecorder) FetchOrder(orderId, accessToken any) *go
 }
 
 // GetAnnouncement mocks base method.
-func (m *MockMercadoLivre) GetAnnouncement(id string) (*common.MeliAnnouncement, error) {
+func (m *MockMercadoLivre) GetAnnouncement(id, accessToken string) (*common.MeliAnnouncement, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAnnouncement", id)
+	ret := m.ctrl.Call(m, "GetAnnouncement", id, accessToken)
 	ret0, _ := ret[0].(*common.MeliAnnouncement)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAnnouncement indicates an expected call of GetAnnouncement.
-func (mr *MockMercadoLivreMockRecorder) GetAnnouncement(id any) *gomock.Call {
+func (mr *MockMercadoLivreMockRecorder) GetAnnouncement(id, accessToken any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAnnouncement", reflect.TypeOf((*MockMercadoLivre)(nil).GetAnnouncement), id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAnnouncement", reflect.TypeOf((*MockMercadoLivre)(nil).GetAnnouncement), id, accessToken)
 }
 
 // GetAnnouncements mocks base method.
