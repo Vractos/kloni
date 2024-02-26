@@ -242,7 +242,7 @@ func (m *MercadoLivre) UpdateQuantity(quantity int, announcementId, accessToken 
 }
 
 // GetAnnouncement implements common.MercadoLivre
-func (m *MercadoLivre) GetAnnouncement(id string) (*common.MeliAnnouncement, error) {
+func (m *MercadoLivre) GetAnnouncement(id string, accessToken string) (*common.MeliAnnouncement, error) {
 	urlPath := fmt.Sprintf("%s/items/%s", m.Endpoint, id)
 
 	req, err := http.NewRequest(http.MethodGet, urlPath, nil)
@@ -252,6 +252,7 @@ func (m *MercadoLivre) GetAnnouncement(id string) (*common.MeliAnnouncement, err
 
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+accessToken)
 	resp, err := m.HttpClient.Do(req)
 	if err != nil {
 		m.Logger.Error(

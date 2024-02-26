@@ -132,7 +132,7 @@ type meliReaderAnnouncement interface {
 	GetAnnouncementsIDsViaSKU(sku string, userId string, accessToken string) ([]string, error)
 	// Max 10 IDs
 	GetAnnouncements(ids []string, accessToken string) (*[]MeliAnnouncement, error)
-	GetAnnouncement(id string) (*MeliAnnouncement, error)
+	GetAnnouncement(id string, accessToken string) (*MeliAnnouncement, error)
 	GetDescription(id string) (*string, error)
 }
 
