@@ -39,6 +39,6 @@ CREATE TABLE IF NOT EXISTS order_items(
   id UUID NOT NULL PRIMARY KEY,
   title VARCHAR(70),
   sku VARCHAR(80) NOT NULL,
-  quantiy SMALLINT NOT NULL,
+  quantity SMALLINT NOT NULL,
   order_id UUID REFERENCES orders(id) NOT NULL
 );
