@@ -142,6 +142,143 @@ func TestNewAnnouncement(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name:     "TestNewAnnouncementWithVariations",
+			newTitle: "Radiador De Água Ford Ka 1.6 2000",
+			args: args{
+				rootAnn: &common.MeliAnnouncement{
+					ID:            "MLB123456789",
+					Title:         "Radiador De Água Ford Ka 1.6 1997 A 2013",
+					Quantity:      1,
+					Price:         100.0,
+					ThumbnailURL:  "https://http2.mlstatic.com/D_NQ_NP_2X_905878-MLB31068648685_062019-F.webp",
+					Sku:           "SKU-123456789",
+					Link:          "https://www.mercadolivre.com.br",
+					CategoryID:    "MLB5672",
+					Condition:     "new",
+					ListingTypeID: "gold_pro",
+					Pictures: []string{
+						"https://http2.mlstatic.com/D_NQ_NP_2X_905878-MLB31068648685_062019-F.webp",
+					},
+					Description: "TestNewAnnouncement",
+					Channels:    []string{"marketplace"},
+					SaleTerms: []struct {
+						ID          string
+						Name        string
+						ValueID     interface{}
+						ValueName   string
+						ValueStruct struct {
+							Number int
+							Unit   string
+						}
+						Values []struct {
+							ID     interface{}
+							Name   string
+							Struct struct {
+								Number int
+								Unit   string
+							}
+						}
+						ValueType string
+					}{
+						{
+							ID:        "WARRANTY_TYPE",
+							ValueName: "Garantia do vendedor",
+						},
+						{
+							ID:        "WARRANTY_TIME",
+							ValueName: "90 dias",
+						},
+						{
+							ID:        "WARRANTY_TIME_TYPE",
+							ValueName: "dias",
+						},
+					},
+					Attributes: []struct {
+						ID          string
+						Name        string
+						ValueID     string
+						ValueName   string
+						ValueStruct interface{}
+						Values      []struct {
+							ID     string
+							Name   string
+							Struct interface{}
+						}
+						AttributeGroupID   string
+						AttributeGroupName string
+						ValueType          string
+					}{
+						{
+							ID:        "BRAND",
+							ValueID:   "215",
+							ValueName: "Apple",
+						},
+						{
+							ID:        "MODEL",
+							ValueID:   "215",
+							ValueName: "Apple",
+						},
+					},
+					Variations: []struct {
+						ID                int
+						AvailableQuantity int
+					}{
+						{
+							ID:                1,
+							AvailableQuantity: 1,
+						},
+						{
+							ID:                2,
+							AvailableQuantity: 1,
+						},
+					},
+				},
+			},
+			want: &Announcement{
+				Title:             "Radiador De Água Ford Ka 1.6 1997 A 2013",
+				AvailableQuantity: 1,
+				Price:             100.0,
+				CurrencyID:        "BRL",
+				BuyingMode:        "buy_it_now",
+				CategoryID:        "MLB5672",
+				Condition:         "new",
+				ListingTypeID:     "gold_pro",
+				Channels:          []string{"marketplace"},
+				Attributes: []attributes{
+					{
+						ID:        "BRAND",
+						ValueID:   "215",
+						ValueName: "Apple",
+					},
+					{
+						ID:        "MODEL",
+						ValueID:   "215",
+						ValueName: "Apple",
+					},
+				},
+				Pictures: []pictures{
+					{
+						Source: "https://http2.mlstatic.com/D_NQ_NP_2X_905878-MLB31068648685_062019-F.webp",
+					},
+				},
+				SaleTerms: []saleTerms{
+					{
+						ID:        "WARRANTY_TYPE",
+						ValueName: "Garantia do vendedor",
+					},
+					{
+						ID:        "WARRANTY_TIME",
+						ValueName: "90 dias",
+					},
+					{
+						ID:        "WARRANTY_TIME_TYPE",
+						ValueName: "dias",
+					},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		got, err := NewAnnouncement(tt.args.rootAnn)

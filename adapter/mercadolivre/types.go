@@ -38,7 +38,7 @@ type Order struct {
 			ID                  string      `json:"id,omitempty" validate:"required"`
 			Title               string      `json:"title,omitempty" validate:"required"`
 			CategoryID          string      `json:"category_id,omitempty"`
-			VariationID         int64       `json:"variation_id,omitempty"`
+			VariationID         int         `json:"variation_id,omitempty"`
 			SellerCustomField   interface{} `json:"seller_custom_field,omitempty"`
 			VariationAttributes []struct {
 				ID        string `json:"id,omitempty"`

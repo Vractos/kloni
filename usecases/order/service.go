@@ -2,6 +2,7 @@ package order
 
 import (
 	"errors"
+	"strconv"
 
 	"github.com/Vractos/kloni/entity"
 	"github.com/Vractos/kloni/usecases/announcement"
@@ -127,12 +128,16 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 	// It contains announcements IDs that Mercado Livre has already updated
 	itsOk := make([]string, len(orderData.Items))
 	for i, item := range orderData.Items {
-		itsOk[i] = item.ID
+		if item.VariationID == 0 {
+			itsOk[i] = item.ID
+		} else {
+			itsOk[i] = strconv.Itoa(item.VariationID)
+		}
 	}
 
 	removeDuplicateItens(&orderData.Items)
 
-	var anns []common.OrderItem
+	var anns []common.MeliAnnouncement
 	for _, item := range orderData.Items {
 		if item.Sku == "" {
 			o.logger.Warn("The product doesn't have sku", zap.String("order_id", order.OrderId), zap.String("announcement_id", item.ID))
@@ -153,7 +158,7 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 					}
 					for _, cln := range *clns {
 						if !utils.Contains(&itsOk, cln.ID) {
-							anns = append(anns, common.OrderItem{
+							anns = append(anns, common.MeliAnnouncement{
 								ID:       cln.ID,
 								Title:    cln.Title,
 								Sku:      cln.Sku,
@@ -171,24 +176,32 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 				return err
 			}
 		}
+
 		for _, cln := range *clones {
 			if cln.Variations != nil {
+				ann := common.MeliAnnouncement{
+					ID:    cln.ID,
+					Title: cln.Title,
+					Sku:   cln.Sku,
+				}
 				for _, variation := range cln.Variations {
-					if variation.AvailableQuantity > 0 {
-						if !utils.Contains(&itsOk, variation.ID) {
-							anns = append(anns, common.OrderItem{
-								ID:       cln.ID,
-								Title:    cln.Title,
-								Sku:      cln.Sku,
-								Quantity: cln.Quantity - item.Quantity,
-							})
-						}
-						break
+					if variation.AvailableQuantity > 0 && !utils.Contains(&itsOk, strconv.Itoa(variation.ID)) {
+						ann.Variations = append(ann.Variations, struct {
+							ID                int
+							AvailableQuantity int
+						}{
+							ID:                variation.ID,
+							AvailableQuantity: variation.AvailableQuantity - item.Quantity,
+						})
 					}
 				}
+				if len(ann.Variations) > 0 {
+					anns = append(anns, ann)
+				}
+				continue
 			}
 			if !utils.Contains(&itsOk, cln.ID) {
-				anns = append(anns, common.OrderItem{
+				anns = append(anns, common.MeliAnnouncement{
 					ID:       cln.ID,
 					Title:    cln.Title,
 					Sku:      cln.Sku,
@@ -204,12 +217,34 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 
 	// It contains announcements that were not possible to change the quantity,
 	// but will be retried
-	var toChangeQuantity []common.OrderItem
+	var toChangeQuantity []common.MeliAnnouncement
 
 	// It contains announcements that were not possible to change the quantity
-	var canNotChangeQuantity []common.OrderItem
+	var canNotChangeQuantity []common.MeliAnnouncement
 
 	for _, ann := range anns {
+		if ann.Variations != nil {
+			for _, variation := range ann.Variations {
+				if err := o.announce.UpdateQuantity(ann.ID, variation.AvailableQuantity, *credentials, variation.ID); err != nil {
+					var annErr *announcement.AnnouncementError
+
+					annFailed := ann
+
+					annFailed.Variations = []struct {
+						ID                int
+						AvailableQuantity int
+					}{variation}
+
+					if errors.As(err, &annErr) && annErr.IsAbleToRetry {
+						toChangeQuantity = append(toChangeQuantity, annFailed)
+					} else {
+						canNotChangeQuantity = append(canNotChangeQuantity, annFailed)
+					}
+				}
+			}
+			continue
+		}
+
 		if err := o.announce.UpdateQuantity(ann.ID, ann.Quantity, *credentials); err != nil {
 			var annErr *announcement.AnnouncementError
 			if errors.As(err, &annErr) && annErr.IsAbleToRetry {
@@ -221,23 +256,20 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 	}
 
 	// TODO Turn into a goroutine
-	// if utils.PercentOf(len(toChangeQuantity), len(orderData.Items)) >= 40.0 {
 	for _, ann := range toChangeQuantity {
+		if ann.Variations != nil {
+			for _, variation := range ann.Variations {
+				if err := o.announce.UpdateQuantity(ann.ID, variation.AvailableQuantity, *credentials, variation.ID); err != nil {
+					canNotChangeQuantity = append(canNotChangeQuantity, ann)
+				}
+			}
+			continue
+		}
+
 		if err := o.announce.UpdateQuantity(ann.ID, ann.Quantity, *credentials); err != nil {
 			canNotChangeQuantity = append(canNotChangeQuantity, ann)
 		}
 	}
-	// }
-
-	// if utils.PercentOf(len(canNotChangeQuantity), len(orderData.Items)) >= 20.0 {
-	// 	oErr := &OrderError{
-	// 		Message:            "Couldn't change the announcements",
-	// 		AnnouncementsError: canNotChangeQuantity,
-	// 	}
-
-	// 	o.logger.Error(oErr.Message, err, zap.Reflect("Announcements that were not possible to change the quantity", canNotChangeQuantity))
-	// 	return oErr
-	// }
 
 	if canNotChangeQuantity != nil {
 		oErr := &OrderError{
@@ -257,9 +289,10 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 	orderItems := make([]entity.OrderItem, len(orderData.Items))
 	for i, item := range orderData.Items {
 		orderItems[i] = entity.OrderItem{
-			Title:    item.Title,
-			Quantity: item.Quantity,
-			Sku:      item.Sku,
+			Title:       item.Title,
+			Quantity:    item.Quantity,
+			Sku:         item.Sku,
+			VariationID: item.VariationID,
 		}
 	}
 

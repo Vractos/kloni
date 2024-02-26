@@ -26,6 +26,8 @@ services:
       - MELI_ENDPOINT=${MELI_ENDPOINT}
       - ORDER_QUEUE_URL=${ORDER_QUEUE_URL}
       - AWS_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
     volumes:
       - ~/.aws:/root/.aws
     depends_on:

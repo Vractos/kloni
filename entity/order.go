@@ -46,10 +46,11 @@ func (s OrderStatus) String() string {
 }
 
 type OrderItem struct {
-	ID       ID
-	Title    string
-	Quantity int
-	Sku      string
+	ID          ID
+	Title       string
+	Quantity    int
+	Sku         string
+	VariationID int
 }
 
 type Order struct {

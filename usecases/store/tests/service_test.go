@@ -9,9 +9,9 @@ import (
 	common_mock "github.com/Vractos/kloni/usecases/common/mock"
 	"github.com/Vractos/kloni/usecases/store"
 	mock_store "github.com/Vractos/kloni/usecases/store/mock"
-	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
+	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"
 )
 

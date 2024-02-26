@@ -8,7 +8,7 @@ import (
 
 type OrderError struct {
 	Message            string
-	AnnouncementsError []common.OrderItem
+	AnnouncementsError []common.MeliAnnouncement
 }
 
 func (o *OrderError) Error() string {

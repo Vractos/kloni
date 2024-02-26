@@ -76,8 +76,8 @@ func (a *AnnouncementService) RetrieveAnnouncements(sku string, credentials stor
 	return anns, err
 }
 
-func (a *AnnouncementService) UpdateQuantity(id string, newQuantity int, credentials store.Credentials) error {
-	err := a.meli.UpdateQuantity(newQuantity, id, credentials.MeliAccessToken)
+func (a *AnnouncementService) UpdateQuantity(id string, newQuantity int, credentials store.Credentials, variationIDs ...int) error {
+	err := a.meli.UpdateQuantity(newQuantity, id, credentials.MeliAccessToken, variationIDs...)
 	if err != nil {
 		cErr := &AnnouncementError{
 			Message:        "Error to update quantity",
@@ -91,8 +91,8 @@ func (a *AnnouncementService) UpdateQuantity(id string, newQuantity int, credent
 	return nil
 }
 
-func (a *AnnouncementService) getAnnouncement(id string) (*common.MeliAnnouncement, error) {
-	ann, err := a.meli.GetAnnouncement(id)
+func (a *AnnouncementService) getAnnouncement(id string, credentials store.Credentials) (*common.MeliAnnouncement, error) {
+	ann, err := a.meli.GetAnnouncement(id, credentials.MeliAccessToken)
 	if err != nil {
 		cErr := &AnnouncementError{
 			Message:        "Error to retrieve root announcement",
@@ -118,7 +118,7 @@ func (a *AnnouncementService) CloneAnnouncement(input CloneAnnouncementDtoInput)
 		a.logger.Error("Error in retrieving meli credentials during the cloning process", err, zap.String("store_id", input.Store.String()))
 		return errors.New("error to clone the announcement - get credentials")
 	}
-	ann, err := a.getAnnouncement(input.RootID)
+	ann, err := a.getAnnouncement(input.RootID, *credentials)
 	if err != nil {
 		a.logger.Error(
 			"Error in retrieving root announcement during the cloning process",
