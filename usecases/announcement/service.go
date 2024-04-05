@@ -172,3 +172,75 @@ func (a *AnnouncementService) CloneAnnouncement(input CloneAnnouncementDtoInput)
 
 	return nil
 }
+
+// TODO: Implement this properly
+func (a *AnnouncementService) ImportAnnouncement(input ImportAnnouncementDtoInput) error {
+	originCredentials, err := a.store.RetrieveMeliCredentialsFromStoreID(input.StoreOrigin)
+	if err != nil {
+		a.logger.Error("Error in retrieving meli credentials, from origin store, during the importing process", err, zap.String("store_id", input.StoreOrigin.String()))
+		return errors.New("error to import the announcement - get credentials")
+	}
+
+	destinyCredentials, err := a.store.RetrieveMeliCredentialsFromStoreID(input.StoreDestiny)
+	if err != nil {
+		a.logger.Error("Error in retrieving meli credentials, from destiny store, during the importing process", err, zap.String("store_id", input.StoreDestiny.String()))
+		return errors.New("error to import the announcement - get credentials")
+	}
+
+	annsOrig, err := a.RetrieveAnnouncements(input.Sku, *originCredentials)
+	if err != nil {
+		a.logger.Error("Error in retrieving announcements during the importing process", err, zap.String("sku", input.Sku))
+		return errors.New("error to import the announcement - get announcements")
+	}
+
+	if annsOrig == nil {
+		a.logger.Info("No announcements to import", zap.String("sku", input.Sku))
+		// Return an error containing the sku to be able to retry the import
+		return &AnnouncementError{
+			Message: "No announcements to import",
+			Sku:     input.Sku,
+		}
+	}
+
+	for _, ann := range *annsOrig {
+		if ann.Quantity == 0 {
+			continue
+		}
+
+		announcement, err := a.getAnnouncement(ann.ID, *originCredentials)
+		if err != nil {
+			a.logger.Error("Error in retrieving announcement during the importing process", err, zap.String("announcement_id", ann.ID))
+			return errors.New("error to import the announcement - get announcement")
+		}
+
+		newAnn, err := entity.NewAnnouncement(announcement)
+		if err != nil {
+			a.logger.Error("Error in the generation of a new announcement during the cloning process", err, zap.String("announcement_id", ann.ID))
+			return err
+		}
+
+		jsonAnn, err := json.Marshal(newAnn)
+		if err != nil {
+			a.logger.Error("Error to marshal announcement json", err, zap.String("announcement_id", input.Sku))
+			return errors.New("error to marshal announcement json")
+		}
+
+		rAnn, err := a.meli.PublishAnnouncement(jsonAnn, destinyCredentials.MeliAccessToken)
+		if err != nil {
+			cErr := &AnnouncementError{
+				Message: "Error to publish an announcement",
+			}
+			a.logger.Error(cErr.Message, err, zap.String("announcement_id", input.Sku))
+			return errors.New("error to publish clone")
+		}
+
+		a.logger.Info("Imported", zap.String("new_announcement_id", *rAnn))
+
+		err = a.meli.AddDescription(ann.Description, *rAnn, destinyCredentials.MeliAccessToken)
+		if err != nil {
+			a.logger.Error("Error to add description", err, zap.String("announcement_id", *rAnn))
+		}
+	}
+
+	return nil
+}

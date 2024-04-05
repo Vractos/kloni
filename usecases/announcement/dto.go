@@ -13,3 +13,9 @@ type CloneAnnouncementDtoInput struct {
 type GetAnnouncementsDtoInput struct {
 	Sku string `json:"sku"`
 }
+
+type ImportAnnouncementDtoInput struct {
+	Sku          string    `json:"sku"`
+	StoreOrigin  entity.ID `json:"store_id_origin"`
+	StoreDestiny entity.ID `json:"store_id_destiny"`
+}
