@@ -2,6 +2,7 @@ package entity
 
 import (
 	"math"
+	"strings"
 
 	"github.com/Vractos/kloni/usecases/common"
 	"github.com/Vractos/kloni/utils"
@@ -62,7 +63,6 @@ func NewAnnouncement(rootAnn *common.MeliAnnouncement) (*Announcement, error) {
 	for i, at := range rootAnn.Attributes {
 		att[i] = attributes{
 			ID:        at.ID,
-			ValueID:   at.ValueID,
 			ValueName: at.ValueName,
 		}
 	}
@@ -79,6 +79,18 @@ func NewAnnouncement(rootAnn *common.MeliAnnouncement) (*Announcement, error) {
 		sTerms[i] = saleTerms{
 			ID:        st.ID,
 			ValueName: st.ValueName,
+		}
+	}
+
+	for i, e := range att {
+		if e.ID == "GTIN" {
+			break
+		}
+		if i == len(att)-1 {
+			att = append(att, attributes{
+				ID:        "GTIN",
+				ValueName: strings.ToUpper(rootAnn.Sku),
+			})
 		}
 	}
 
