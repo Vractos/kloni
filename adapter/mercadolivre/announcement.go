@@ -293,6 +293,7 @@ func (m *MercadoLivre) GetAnnouncement(id string, accessToken string) (*common.M
 
 	pics := make([]string, len(aR.Pictures))
 	for i, p := range aR.Pictures {
+		p.URL = p.URL[:len(p.URL)-5] + "F" + p.URL[len(p.URL)-4:]
 		pics[i] = p.URL
 	}
 
