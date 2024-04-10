@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"strings"
 
@@ -293,6 +295,13 @@ func (m *MercadoLivre) GetAnnouncement(id string, accessToken string) (*common.M
 
 	pics := make([]string, len(aR.Pictures))
 	for i, p := range aR.Pictures {
+		p.URL = p.URL[:len(p.URL)-5] + "F" + p.URL[len(p.URL)-4:]
+		if strings.Contains(p.MaxSize, "x") {
+			mSize := strings.Split(p.MaxSize, "x")
+			if mSize[0] < "750" || mSize[1] < "750" {
+
+			}
+		}
 		pics[i] = p.URL
 	}
 
@@ -508,4 +517,104 @@ func (m *MercadoLivre) PublishAnnouncement(announcement []byte, accessToken stri
 
 	return &result.ID, nil
 
+}
+
+func (m *MercadoLivre) GetProductsPictures(picturesURL []string) (pics []bytes.Buffer, err error) {
+	pics = make([]bytes.Buffer, len(picturesURL))
+
+	for i, p := range picturesURL {
+		resp, err := http.Get(p)
+		if err != nil {
+			m.Logger.Error(
+				"Error to get the picture",
+				err,
+				zap.String("url", p),
+			)
+			return nil, err
+		}
+		defer resp.Body.Close()
+
+		buf := new(bytes.Buffer)
+		_, err = io.Copy(buf, resp.Body)
+		if err != nil {
+			m.Logger.Error(
+				"Error to copy the picture to buffer",
+				err,
+				zap.String("url", p),
+			)
+			return nil, err
+		}
+
+		pics[i] = *buf
+	}
+
+	return pics, nil
+}
+
+func (m *MercadoLivre) ValidateAndExchangeImages(images *[]bytes.Buffer, accessToken string) (ids []string, err error) {
+	ids = make([]string, len(*images))
+
+	for i, p := range *images {
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		part, err := writer.CreateFormFile("file", "image.jpg")
+		if err != nil {
+			return nil, err
+		}
+		_, err = io.Copy(part, &p)
+		if err != nil {
+			return nil, err
+		}
+		writer.Close()
+
+		urlPath := fmt.Sprintf("%s/pictures/items/upload", m.Endpoint)
+
+		req, err := http.NewRequest(http.MethodPost, urlPath, body)
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Add("Accept", "application/json")
+		req.Header.Add("Content-Type", writer.FormDataContentType())
+		req.Header.Add("Authorization", "Bearer "+accessToken)
+		resp, err := m.HttpClient.Do(req)
+		if err != nil {
+			m.Logger.Error(
+				"Error to make a request to Mercado Livre",
+				err,
+				zap.String("path", "/"+urlPath),
+			)
+			return nil, err
+		}
+
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+			addAnnouncementsError := &MeliError{}
+			if err := json.NewDecoder(resp.Body).Decode(addAnnouncementsError); err != nil {
+				m.Logger.Error(
+					"Error to decode response body",
+					err,
+				)
+				return nil, err
+			}
+			m.Logger.Warn(
+				"Fail to upload the picture",
+				zap.String("meli_message", addAnnouncementsError.Message),
+				zap.String("meli_erro", addAnnouncementsError.Error),
+				zap.Any("cause", addAnnouncementsError.Cause),
+				zap.Int("status_code", resp.StatusCode),
+			)
+			return nil, errors.New("error to add picture")
+		}
+
+		result := &PictureUpload{}
+		if err := json.NewDecoder(resp.Body).Decode(result); err != nil {
+			return nil, err
+		}
+
+		ids[i] = result.ID
+	}
+
+	return ids, nil
 }

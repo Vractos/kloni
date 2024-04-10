@@ -1,6 +1,7 @@
 package common
 
 import (
+	"bytes"
 	"time"
 )
 
@@ -134,12 +135,14 @@ type meliReaderAnnouncement interface {
 	GetAnnouncements(ids []string, accessToken string) (*[]MeliAnnouncement, error)
 	GetAnnouncement(id string, accessToken string) (*MeliAnnouncement, error)
 	GetDescription(id string) (*string, error)
+	GetProductsPictures(picturesURL []string) (pics []bytes.Buffer, err error)
 }
 
 type meliWriterAnnouncement interface {
 	UpdateQuantity(quantity int, announcementId, accessToken string, variationIDs ...int) error
 	PublishAnnouncement(announcementJson []byte, accessToken string) (ID *string, err error)
 	AddDescription(description, announcementId, accessToken string) error
+	ValidateAndExchangeImages(images *[]bytes.Buffer, accessToken string) (ids []string, err error)
 }
 
 type MercadoLivre interface {
