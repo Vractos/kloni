@@ -5,12 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image"
+	"image/jpeg"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"strings"
 
 	"github.com/Vractos/kloni/usecases/common"
+	"github.com/Vractos/kloni/utils"
 	"go.uber.org/zap"
 )
 
@@ -299,7 +302,17 @@ func (m *MercadoLivre) GetAnnouncement(id string, accessToken string) (*common.M
 		if strings.Contains(p.MaxSize, "x") {
 			mSize := strings.Split(p.MaxSize, "x")
 			if mSize[0] < "750" || mSize[1] < "750" {
+				img, err := m.GetProductsPictures([]string{p.URL})
+				if err != nil {
+					return nil, err
+				}
+				rsdImg := utils.ResizeImage(img[0], 1200, 0)
+				url, err := m.ValidateAndExchangeImages([]*image.Image{&rsdImg}, accessToken)
+				if err != nil {
+					return nil, err
+				}
 
+				p.URL = url[0]
 			}
 		}
 		pics[i] = p.URL
@@ -519,8 +532,8 @@ func (m *MercadoLivre) PublishAnnouncement(announcement []byte, accessToken stri
 
 }
 
-func (m *MercadoLivre) GetProductsPictures(picturesURL []string) (pics []bytes.Buffer, err error) {
-	pics = make([]bytes.Buffer, len(picturesURL))
+func (m *MercadoLivre) GetProductsPictures(picturesURL []string) (pics []image.Image, err error) {
+	pics = make([]image.Image, len(picturesURL))
 
 	for i, p := range picturesURL {
 		resp, err := http.Get(p)
@@ -534,37 +547,46 @@ func (m *MercadoLivre) GetProductsPictures(picturesURL []string) (pics []bytes.B
 		}
 		defer resp.Body.Close()
 
-		buf := new(bytes.Buffer)
-		_, err = io.Copy(buf, resp.Body)
+		src, _, err := image.Decode(resp.Body)
 		if err != nil {
 			m.Logger.Error(
-				"Error to copy the picture to buffer",
+				"Error to decode image",
 				err,
 				zap.String("url", p),
 			)
 			return nil, err
 		}
 
-		pics[i] = *buf
+		pics[i] = src
+
 	}
 
 	return pics, nil
 }
 
-func (m *MercadoLivre) ValidateAndExchangeImages(images *[]bytes.Buffer, accessToken string) (ids []string, err error) {
-	ids = make([]string, len(*images))
+func (m *MercadoLivre) ValidateAndExchangeImages(images []*image.Image, accessToken string) (urlF []string, err error) {
+	urlF = make([]string, len(images))
 
-	for i, p := range *images {
+	for i, p := range images {
+		buf := new(bytes.Buffer)
+
+		err := jpeg.Encode(buf, *p, &jpeg.Options{Quality: 100})
+		if err != nil {
+			return nil, err
+		}
+
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
 		part, err := writer.CreateFormFile("file", "image.jpg")
 		if err != nil {
 			return nil, err
 		}
-		_, err = io.Copy(part, &p)
+
+		_, err = io.Copy(part, buf)
 		if err != nil {
 			return nil, err
 		}
+
 		writer.Close()
 
 		urlPath := fmt.Sprintf("%s/pictures/items/upload", m.Endpoint)
@@ -575,7 +597,7 @@ func (m *MercadoLivre) ValidateAndExchangeImages(images *[]bytes.Buffer, accessT
 		}
 
 		req.Header.Add("Accept", "application/json")
-		req.Header.Add("Content-Type", writer.FormDataContentType())
+		req.Header.Set("Content-Type", writer.FormDataContentType())
 		req.Header.Add("Authorization", "Bearer "+accessToken)
 		resp, err := m.HttpClient.Do(req)
 		if err != nil {
@@ -613,8 +635,12 @@ func (m *MercadoLivre) ValidateAndExchangeImages(images *[]bytes.Buffer, accessT
 			return nil, err
 		}
 
-		ids[i] = result.ID
+		if strings.Contains(result.Variations[0].SecureURL, "-F.jpg") {
+			urlF[i] = result.Variations[0].SecureURL
+		} else {
+			urlF[i] = result.Variations[0].SecureURL[:len(result.Variations[0].SecureURL)-5] + "F" + result.Variations[0].SecureURL[len(result.Variations[0].SecureURL)-4:]
+		}
 	}
 
-	return ids, nil
+	return urlF, nil
 }
