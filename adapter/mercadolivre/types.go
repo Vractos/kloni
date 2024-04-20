@@ -489,3 +489,23 @@ type MeliError struct {
 	Status  int           `json:"status,omitempty"`
 	Cause   []interface{} `json:"cause,omitempty"`
 }
+
+type PictureUpload struct {
+	ID            string `json:"id,omitempty"`
+	MaxSize       string `json:"max_size,omitempty"`
+	DominantColor any    `json:"dominant_color,omitempty"`
+	Hash          string `json:"hash,omitempty"`
+	Crop          struct {
+		Validated bool `json:"validated,omitempty"`
+		XOffset   any  `json:"x_offset,omitempty"`
+		XSize     any  `json:"x_size,omitempty"`
+		YOffset   any  `json:"y_offset,omitempty"`
+		YSize     any  `json:"y_size,omitempty"`
+	} `json:"crop,omitempty"`
+	Variations []struct {
+		Size      string `json:"size,omitempty"`
+		SecureURL string `json:"secure_url,omitempty"`
+		URL       string `json:"url,omitempty"`
+	} `json:"variations,omitempty"`
+	Status string `json:"status,omitempty"`
+}

@@ -5,10 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image"
+	"image/jpeg"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"strings"
 
 	"github.com/Vractos/kloni/usecases/common"
+	"github.com/Vractos/kloni/utils"
 	"go.uber.org/zap"
 )
 
@@ -294,6 +299,22 @@ func (m *MercadoLivre) GetAnnouncement(id string, accessToken string) (*common.M
 	pics := make([]string, len(aR.Pictures))
 	for i, p := range aR.Pictures {
 		p.URL = p.URL[:len(p.URL)-5] + "F" + p.URL[len(p.URL)-4:]
+		if strings.Contains(p.MaxSize, "x") {
+			mSize := strings.Split(p.MaxSize, "x")
+			if mSize[0] < "750" || mSize[1] < "750" {
+				img, err := m.GetProductsPictures([]string{p.URL})
+				if err != nil {
+					return nil, err
+				}
+				rsdImg := utils.ResizeImage(img[0], 1200, 0)
+				url, err := m.ValidateAndExchangeImages([]*image.Image{&rsdImg}, accessToken)
+				if err != nil {
+					return nil, err
+				}
+
+				p.URL = url[0]
+			}
+		}
 		pics[i] = p.URL
 	}
 
@@ -509,4 +530,117 @@ func (m *MercadoLivre) PublishAnnouncement(announcement []byte, accessToken stri
 
 	return &result.ID, nil
 
+}
+
+func (m *MercadoLivre) GetProductsPictures(picturesURL []string) (pics []image.Image, err error) {
+	pics = make([]image.Image, len(picturesURL))
+
+	for i, p := range picturesURL {
+		resp, err := http.Get(p)
+		if err != nil {
+			m.Logger.Error(
+				"Error to get the picture",
+				err,
+				zap.String("url", p),
+			)
+			return nil, err
+		}
+		defer resp.Body.Close()
+
+		src, _, err := image.Decode(resp.Body)
+		if err != nil {
+			m.Logger.Error(
+				"Error to decode image",
+				err,
+				zap.String("url", p),
+			)
+			return nil, err
+		}
+
+		pics[i] = src
+
+	}
+
+	return pics, nil
+}
+
+func (m *MercadoLivre) ValidateAndExchangeImages(images []*image.Image, accessToken string) (urlF []string, err error) {
+	urlF = make([]string, len(images))
+
+	for i, p := range images {
+		buf := new(bytes.Buffer)
+
+		err := jpeg.Encode(buf, *p, &jpeg.Options{Quality: 100})
+		if err != nil {
+			return nil, err
+		}
+
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		part, err := writer.CreateFormFile("file", "image.jpg")
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = io.Copy(part, buf)
+		if err != nil {
+			return nil, err
+		}
+
+		writer.Close()
+
+		urlPath := fmt.Sprintf("%s/pictures/items/upload", m.Endpoint)
+
+		req, err := http.NewRequest(http.MethodPost, urlPath, body)
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Add("Accept", "application/json")
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		req.Header.Add("Authorization", "Bearer "+accessToken)
+		resp, err := m.HttpClient.Do(req)
+		if err != nil {
+			m.Logger.Error(
+				"Error to make a request to Mercado Livre",
+				err,
+				zap.String("path", "/"+urlPath),
+			)
+			return nil, err
+		}
+
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+			addAnnouncementsError := &MeliError{}
+			if err := json.NewDecoder(resp.Body).Decode(addAnnouncementsError); err != nil {
+				m.Logger.Error(
+					"Error to decode response body",
+					err,
+				)
+				return nil, err
+			}
+			m.Logger.Warn(
+				"Fail to upload the picture",
+				zap.String("meli_message", addAnnouncementsError.Message),
+				zap.String("meli_erro", addAnnouncementsError.Error),
+				zap.Any("cause", addAnnouncementsError.Cause),
+				zap.Int("status_code", resp.StatusCode),
+			)
+			return nil, errors.New("error to add picture")
+		}
+
+		result := &PictureUpload{}
+		if err := json.NewDecoder(resp.Body).Decode(result); err != nil {
+			return nil, err
+		}
+
+		if strings.Contains(result.Variations[0].SecureURL, "-F.jpg") {
+			urlF[i] = result.Variations[0].SecureURL
+		} else {
+			urlF[i] = result.Variations[0].SecureURL[:len(result.Variations[0].SecureURL)-5] + "F" + result.Variations[0].SecureURL[len(result.Variations[0].SecureURL)-4:]
+		}
+	}
+
+	return urlF, nil
 }
