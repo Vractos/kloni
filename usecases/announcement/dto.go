@@ -15,7 +15,7 @@ type GetAnnouncementsDtoInput struct {
 }
 
 type ImportAnnouncementDtoInput struct {
-	Sku          string    `json:"sku"`
-	StoreOrigin  entity.ID `json:"store_id_origin"`
-	StoreDestiny entity.ID `json:"store_id_destiny"`
+	AnnouncementID string    `json:"announcement_id"`
+	StoreOrigin    entity.ID `json:"store_id_origin"`
+	StoreDestiny   entity.ID `json:"store_id_destiny"`
 }

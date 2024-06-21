@@ -10,6 +10,7 @@
 package mock_common
 
 import (
+	image "image"
 	reflect "reflect"
 
 	common "github.com/Vractos/kloni/usecases/common"
@@ -213,6 +214,21 @@ func (mr *MockmeliReaderAnnouncementMockRecorder) GetDescription(id any) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDescription", reflect.TypeOf((*MockmeliReaderAnnouncement)(nil).GetDescription), id)
 }
 
+// GetProductsPictures mocks base method.
+func (m *MockmeliReaderAnnouncement) GetProductsPictures(picturesURL []string) ([]image.Image, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetProductsPictures", picturesURL)
+	ret0, _ := ret[0].([]image.Image)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetProductsPictures indicates an expected call of GetProductsPictures.
+func (mr *MockmeliReaderAnnouncementMockRecorder) GetProductsPictures(picturesURL any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductsPictures", reflect.TypeOf((*MockmeliReaderAnnouncement)(nil).GetProductsPictures), picturesURL)
+}
+
 // MockmeliWriterAnnouncement is a mock of meliWriterAnnouncement interface.
 type MockmeliWriterAnnouncement struct {
 	ctrl     *gomock.Controller
@@ -282,6 +298,21 @@ func (mr *MockmeliWriterAnnouncementMockRecorder) UpdateQuantity(quantity, annou
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{quantity, announcementId, accessToken}, variationIDs...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateQuantity", reflect.TypeOf((*MockmeliWriterAnnouncement)(nil).UpdateQuantity), varargs...)
+}
+
+// ValidateAndExchangeImages mocks base method.
+func (m *MockmeliWriterAnnouncement) ValidateAndExchangeImages(images []*image.Image, accessToken string) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateAndExchangeImages", images, accessToken)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ValidateAndExchangeImages indicates an expected call of ValidateAndExchangeImages.
+func (mr *MockmeliWriterAnnouncementMockRecorder) ValidateAndExchangeImages(images, accessToken any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateAndExchangeImages", reflect.TypeOf((*MockmeliWriterAnnouncement)(nil).ValidateAndExchangeImages), images, accessToken)
 }
 
 // MockMercadoLivre is a mock of MercadoLivre interface.
@@ -396,6 +427,21 @@ func (mr *MockMercadoLivreMockRecorder) GetDescription(id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDescription", reflect.TypeOf((*MockMercadoLivre)(nil).GetDescription), id)
 }
 
+// GetProductsPictures mocks base method.
+func (m *MockMercadoLivre) GetProductsPictures(picturesURL []string) ([]image.Image, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetProductsPictures", picturesURL)
+	ret0, _ := ret[0].([]image.Image)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetProductsPictures indicates an expected call of GetProductsPictures.
+func (mr *MockMercadoLivreMockRecorder) GetProductsPictures(picturesURL any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductsPictures", reflect.TypeOf((*MockMercadoLivre)(nil).GetProductsPictures), picturesURL)
+}
+
 // PublishAnnouncement mocks base method.
 func (m *MockMercadoLivre) PublishAnnouncement(announcementJson []byte, accessToken string) (*string, error) {
 	m.ctrl.T.Helper()
@@ -458,4 +504,19 @@ func (mr *MockMercadoLivreMockRecorder) UpdateQuantity(quantity, announcementId,
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{quantity, announcementId, accessToken}, variationIDs...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateQuantity", reflect.TypeOf((*MockMercadoLivre)(nil).UpdateQuantity), varargs...)
+}
+
+// ValidateAndExchangeImages mocks base method.
+func (m *MockMercadoLivre) ValidateAndExchangeImages(images []*image.Image, accessToken string) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateAndExchangeImages", images, accessToken)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ValidateAndExchangeImages indicates an expected call of ValidateAndExchangeImages.
+func (mr *MockMercadoLivreMockRecorder) ValidateAndExchangeImages(images, accessToken any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateAndExchangeImages", reflect.TypeOf((*MockMercadoLivre)(nil).ValidateAndExchangeImages), images, accessToken)
 }

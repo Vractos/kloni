@@ -11,11 +11,18 @@ import (
 	"mime/multipart"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/Vractos/kloni/usecases/common"
 	"github.com/Vractos/kloni/utils"
 	"go.uber.org/zap"
 )
+
+type imgsResult struct {
+	index int
+	url   string
+	err   error
+}
 
 func (m *MercadoLivre) GetAnnouncementsIDsViaSKU(sku string, userId string, accessToken string) ([]string, error) {
 	urlPath := fmt.Sprintf("%s/users/%s/items/search?seller_sku=%s", m.Endpoint, userId, sku)
@@ -297,25 +304,25 @@ func (m *MercadoLivre) GetAnnouncement(id string, accessToken string) (*common.M
 	}
 
 	pics := make([]string, len(aR.Pictures))
-	for i, p := range aR.Pictures {
-		p.URL = p.URL[:len(p.URL)-5] + "F" + p.URL[len(p.URL)-4:]
-		if strings.Contains(p.MaxSize, "x") {
-			mSize := strings.Split(p.MaxSize, "x")
-			if mSize[0] < "750" || mSize[1] < "750" {
-				img, err := m.GetProductsPictures([]string{p.URL})
-				if err != nil {
-					return nil, err
-				}
-				rsdImg := utils.ResizeImage(img[0], 1200, 0)
-				url, err := m.ValidateAndExchangeImages([]*image.Image{&rsdImg}, accessToken)
-				if err != nil {
-					return nil, err
-				}
 
-				p.URL = url[0]
-			}
+	rCh := make(chan imgsResult)
+	var wg sync.WaitGroup
+
+	for i, p := range aR.Pictures {
+		wg.Add(1)
+		go m.handleAnnouncementPic(i, p, rCh, accessToken, &wg)
+	}
+
+	go func() {
+		wg.Wait()
+		close(rCh)
+	}()
+
+	for r := range rCh {
+		if r.err != nil {
+			return nil, r.err
 		}
-		pics[i] = p.URL
+		pics[r.index] = r.url
 	}
 
 	return &common.MeliAnnouncement{
@@ -643,4 +650,31 @@ func (m *MercadoLivre) ValidateAndExchangeImages(images []*image.Image, accessTo
 	}
 
 	return urlF, nil
+}
+
+func (m *MercadoLivre) handleAnnouncementPic(index int, pic AnnouncementPicture, ch chan<- imgsResult, accessToken string, wg *sync.WaitGroup) {
+	pic.URL = pic.URL[:len(pic.URL)-5] + "F" + pic.URL[len(pic.URL)-4:]
+
+	defer wg.Done()
+
+	if strings.Contains(pic.MaxSize, "x") {
+		mSize := strings.Split(pic.MaxSize, "x")
+		if mSize[0] < "750" || mSize[1] < "750" {
+			img, err := m.GetProductsPictures([]string{pic.URL})
+			if err != nil {
+				ch <- imgsResult{index, "", err}
+				return
+			}
+
+			rsdImg := utils.ResizeImage(img[0], 1200, 0)
+			url, err := m.ValidateAndExchangeImages([]*image.Image{&rsdImg}, accessToken)
+			if err != nil {
+				ch <- imgsResult{index, "", err}
+				return
+			}
+
+			pic.URL = url[0]
+		}
+	}
+	ch <- imgsResult{index, pic.URL, nil}
 }
