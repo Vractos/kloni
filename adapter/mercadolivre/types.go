@@ -189,29 +189,22 @@ type AnnouncementsMultiGet []struct {
 			} `json:"values,omitempty"`
 			ValueType string `json:"value_type,omitempty"`
 		} `json:"sale_terms,omitempty"`
-		BuyingMode      string    `json:"buying_mode,omitempty"`
-		ListingTypeID   string    `json:"listing_type_id,omitempty"`
-		StartTime       time.Time `json:"start_time,omitempty"`
-		StopTime        time.Time `json:"stop_time,omitempty"`
-		EndTime         time.Time `json:"end_time,omitempty"`
-		ExpirationTime  time.Time `json:"expiration_time,omitempty"`
-		Condition       string    `json:"condition,omitempty"`
-		Permalink       string    `json:"permalink,omitempty"`
-		ThumbnailID     string    `json:"thumbnail_id,omitempty"`
-		Thumbnail       string    `json:"thumbnail,omitempty"`
-		SecureThumbnail string    `json:"secure_thumbnail,omitempty"`
-		Pictures        []struct {
-			ID        string `json:"id,omitempty"`
-			URL       string `json:"url,omitempty"`
-			SecureURL string `json:"secure_url,omitempty"`
-			Size      string `json:"size,omitempty"`
-			MaxSize   string `json:"max_size,omitempty"`
-			Quality   string `json:"quality,omitempty"`
-		} `json:"pictures,omitempty"`
-		VideoID                      interface{}   `json:"video_id,omitempty"`
-		Descriptions                 []interface{} `json:"descriptions,omitempty"`
-		AcceptsMercadopago           bool          `json:"accepts_mercadopago,omitempty"`
-		NonMercadoPagoPaymentMethods []interface{} `json:"non_mercado_pago_payment_methods,omitempty"`
+		BuyingMode                   string                `json:"buying_mode,omitempty"`
+		ListingTypeID                string                `json:"listing_type_id,omitempty"`
+		StartTime                    time.Time             `json:"start_time,omitempty"`
+		StopTime                     time.Time             `json:"stop_time,omitempty"`
+		EndTime                      time.Time             `json:"end_time,omitempty"`
+		ExpirationTime               time.Time             `json:"expiration_time,omitempty"`
+		Condition                    string                `json:"condition,omitempty"`
+		Permalink                    string                `json:"permalink,omitempty"`
+		ThumbnailID                  string                `json:"thumbnail_id,omitempty"`
+		Thumbnail                    string                `json:"thumbnail,omitempty"`
+		SecureThumbnail              string                `json:"secure_thumbnail,omitempty"`
+		Pictures                     []AnnouncementPicture `json:"pictures,omitempty"`
+		VideoID                      interface{}           `json:"video_id,omitempty"`
+		Descriptions                 []interface{}         `json:"descriptions,omitempty"`
+		AcceptsMercadopago           bool                  `json:"accepts_mercadopago,omitempty"`
+		NonMercadoPagoPaymentMethods []interface{}         `json:"non_mercado_pago_payment_methods,omitempty"`
 		Shipping                     struct {
 			Mode         string        `json:"mode,omitempty"`
 			Methods      []interface{} `json:"methods,omitempty"`
@@ -357,29 +350,22 @@ type Announcement struct {
 		} `json:"values,omitempty"`
 		ValueType string `json:"value_type,omitempty"`
 	} `json:"sale_terms,omitempty"`
-	BuyingMode      string    `json:"buying_mode,omitempty"`
-	ListingTypeID   string    `json:"listing_type_id,omitempty"`
-	StartTime       time.Time `json:"start_time,omitempty"`
-	StopTime        time.Time `json:"stop_time,omitempty"`
-	EndTime         time.Time `json:"end_time,omitempty"`
-	ExpirationTime  time.Time `json:"expiration_time,omitempty"`
-	Condition       string    `json:"condition,omitempty"`
-	Permalink       string    `json:"permalink,omitempty"`
-	ThumbnailID     string    `json:"thumbnail_id,omitempty"`
-	Thumbnail       string    `json:"thumbnail,omitempty"`
-	SecureThumbnail string    `json:"secure_thumbnail,omitempty"`
-	Pictures        []struct {
-		ID        string `json:"id,omitempty"`
-		URL       string `json:"url,omitempty"`
-		SecureURL string `json:"secure_url,omitempty"`
-		Size      string `json:"size,omitempty"`
-		MaxSize   string `json:"max_size,omitempty"`
-		Quality   string `json:"quality,omitempty"`
-	} `json:"pictures,omitempty"`
-	VideoID                      interface{}   `json:"video_id,omitempty"`
-	Descriptions                 []interface{} `json:"descriptions,omitempty"`
-	AcceptsMercadopago           bool          `json:"accepts_mercadopago,omitempty"`
-	NonMercadoPagoPaymentMethods []interface{} `json:"non_mercado_pago_payment_methods,omitempty"`
+	BuyingMode                   string                `json:"buying_mode,omitempty"`
+	ListingTypeID                string                `json:"listing_type_id,omitempty"`
+	StartTime                    time.Time             `json:"start_time,omitempty"`
+	StopTime                     time.Time             `json:"stop_time,omitempty"`
+	EndTime                      time.Time             `json:"end_time,omitempty"`
+	ExpirationTime               time.Time             `json:"expiration_time,omitempty"`
+	Condition                    string                `json:"condition,omitempty"`
+	Permalink                    string                `json:"permalink,omitempty"`
+	ThumbnailID                  string                `json:"thumbnail_id,omitempty"`
+	Thumbnail                    string                `json:"thumbnail,omitempty"`
+	SecureThumbnail              string                `json:"secure_thumbnail,omitempty"`
+	Pictures                     []AnnouncementPicture `json:"pictures,omitempty"`
+	VideoID                      interface{}           `json:"video_id,omitempty"`
+	Descriptions                 []interface{}         `json:"descriptions,omitempty"`
+	AcceptsMercadopago           bool                  `json:"accepts_mercadopago,omitempty"`
+	NonMercadoPagoPaymentMethods []interface{}         `json:"non_mercado_pago_payment_methods,omitempty"`
 	Shipping                     struct {
 		Mode         string        `json:"mode,omitempty"`
 		Methods      []interface{} `json:"methods,omitempty"`
@@ -508,4 +494,13 @@ type PictureUpload struct {
 		URL       string `json:"url,omitempty"`
 	} `json:"variations,omitempty"`
 	Status string `json:"status,omitempty"`
+}
+
+type AnnouncementPicture struct {
+	ID        string `json:"id,omitempty"`
+	URL       string `json:"url,omitempty"`
+	SecureURL string `json:"secure_url,omitempty"`
+	Size      string `json:"size,omitempty"`
+	MaxSize   string `json:"max_size,omitempty"`
+	Quality   string `json:"quality,omitempty"`
 }
