@@ -101,10 +101,10 @@ func (mr *MockUseCaseMockRecorder) RetrieveMeliCredentialsFromMeliUserID(id any)
 }
 
 // RetrieveMeliCredentialsFromStoreID mocks base method.
-func (m *MockUseCase) RetrieveMeliCredentialsFromStoreID(id entity.ID) (*store.Credentials, error) {
+func (m *MockUseCase) RetrieveMeliCredentialsFromStoreID(id entity.ID) (*[]store.Credentials, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RetrieveMeliCredentialsFromStoreID", id)
-	ret0, _ := ret[0].(*store.Credentials)
+	ret0, _ := ret[0].(*[]store.Credentials)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -154,26 +154,25 @@ func (mr *MockRepoReaderMockRecorder) Get(id any) *gomock.Call {
 }
 
 // RetrieveMeliCredentialsFromMeliUserID mocks base method.
-func (m *MockRepoReader) RetrieveMeliCredentialsFromMeliUserID(id string) (*entity.ID, *common.MeliCredential, error) {
+func (m *MockRepoReader) RetrieveMeliCredentialsFromMeliUserID(accountId string) (*store.Credentials, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RetrieveMeliCredentialsFromMeliUserID", id)
-	ret0, _ := ret[0].(*entity.ID)
-	ret1, _ := ret[1].(*common.MeliCredential)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret := m.ctrl.Call(m, "RetrieveMeliCredentialsFromMeliUserID", accountId)
+	ret0, _ := ret[0].(*store.Credentials)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // RetrieveMeliCredentialsFromMeliUserID indicates an expected call of RetrieveMeliCredentialsFromMeliUserID.
-func (mr *MockRepoReaderMockRecorder) RetrieveMeliCredentialsFromMeliUserID(id any) *gomock.Call {
+func (mr *MockRepoReaderMockRecorder) RetrieveMeliCredentialsFromMeliUserID(accountId any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetrieveMeliCredentialsFromMeliUserID", reflect.TypeOf((*MockRepoReader)(nil).RetrieveMeliCredentialsFromMeliUserID), id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetrieveMeliCredentialsFromMeliUserID", reflect.TypeOf((*MockRepoReader)(nil).RetrieveMeliCredentialsFromMeliUserID), accountId)
 }
 
 // RetrieveMeliCredentialsFromStoreID mocks base method.
-func (m *MockRepoReader) RetrieveMeliCredentialsFromStoreID(id entity.ID) (*common.MeliCredential, error) {
+func (m *MockRepoReader) RetrieveMeliCredentialsFromStoreID(id entity.ID) (*[]store.Credentials, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RetrieveMeliCredentialsFromStoreID", id)
-	ret0, _ := ret[0].(*common.MeliCredential)
+	ret0, _ := ret[0].(*[]store.Credentials)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -265,17 +264,17 @@ func (mr *MockRepoWriterMockRecorder) Update(e any) *gomock.Call {
 }
 
 // UpdateMeliCredentials mocks base method.
-func (m *MockRepoWriter) UpdateMeliCredentials(id entity.ID, c *common.MeliCredential) error {
+func (m *MockRepoWriter) UpdateMeliCredentials(accountId entity.ID, c *common.MeliCredential) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateMeliCredentials", id, c)
+	ret := m.ctrl.Call(m, "UpdateMeliCredentials", accountId, c)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateMeliCredentials indicates an expected call of UpdateMeliCredentials.
-func (mr *MockRepoWriterMockRecorder) UpdateMeliCredentials(id, c any) *gomock.Call {
+func (mr *MockRepoWriterMockRecorder) UpdateMeliCredentials(accountId, c any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMeliCredentials", reflect.TypeOf((*MockRepoWriter)(nil).UpdateMeliCredentials), id, c)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMeliCredentials", reflect.TypeOf((*MockRepoWriter)(nil).UpdateMeliCredentials), accountId, c)
 }
 
 // MockRepository is a mock of Repository interface.
@@ -360,26 +359,25 @@ func (mr *MockRepositoryMockRecorder) RegisterMeliCredential(id, c any) *gomock.
 }
 
 // RetrieveMeliCredentialsFromMeliUserID mocks base method.
-func (m *MockRepository) RetrieveMeliCredentialsFromMeliUserID(id string) (*entity.ID, *common.MeliCredential, error) {
+func (m *MockRepository) RetrieveMeliCredentialsFromMeliUserID(accountId string) (*store.Credentials, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RetrieveMeliCredentialsFromMeliUserID", id)
-	ret0, _ := ret[0].(*entity.ID)
-	ret1, _ := ret[1].(*common.MeliCredential)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret := m.ctrl.Call(m, "RetrieveMeliCredentialsFromMeliUserID", accountId)
+	ret0, _ := ret[0].(*store.Credentials)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // RetrieveMeliCredentialsFromMeliUserID indicates an expected call of RetrieveMeliCredentialsFromMeliUserID.
-func (mr *MockRepositoryMockRecorder) RetrieveMeliCredentialsFromMeliUserID(id any) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) RetrieveMeliCredentialsFromMeliUserID(accountId any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetrieveMeliCredentialsFromMeliUserID", reflect.TypeOf((*MockRepository)(nil).RetrieveMeliCredentialsFromMeliUserID), id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetrieveMeliCredentialsFromMeliUserID", reflect.TypeOf((*MockRepository)(nil).RetrieveMeliCredentialsFromMeliUserID), accountId)
 }
 
 // RetrieveMeliCredentialsFromStoreID mocks base method.
-func (m *MockRepository) RetrieveMeliCredentialsFromStoreID(id entity.ID) (*common.MeliCredential, error) {
+func (m *MockRepository) RetrieveMeliCredentialsFromStoreID(id entity.ID) (*[]store.Credentials, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RetrieveMeliCredentialsFromStoreID", id)
-	ret0, _ := ret[0].(*common.MeliCredential)
+	ret0, _ := ret[0].(*[]store.Credentials)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -405,15 +403,15 @@ func (mr *MockRepositoryMockRecorder) Update(e any) *gomock.Call {
 }
 
 // UpdateMeliCredentials mocks base method.
-func (m *MockRepository) UpdateMeliCredentials(id entity.ID, c *common.MeliCredential) error {
+func (m *MockRepository) UpdateMeliCredentials(accountId entity.ID, c *common.MeliCredential) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateMeliCredentials", id, c)
+	ret := m.ctrl.Call(m, "UpdateMeliCredentials", accountId, c)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateMeliCredentials indicates an expected call of UpdateMeliCredentials.
-func (mr *MockRepositoryMockRecorder) UpdateMeliCredentials(id, c any) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) UpdateMeliCredentials(accountId, c any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMeliCredentials", reflect.TypeOf((*MockRepository)(nil).UpdateMeliCredentials), id, c)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMeliCredentials", reflect.TypeOf((*MockRepository)(nil).UpdateMeliCredentials), accountId, c)
 }

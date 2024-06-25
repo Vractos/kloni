@@ -6,16 +6,17 @@ import (
 )
 
 type Credentials struct {
-	StoreID         entity.ID
-	MeliAccessToken string
-	MeliUserID      string
+	ID          entity.ID
+	OwnerID     entity.ID
+	AccountName string
+	*common.MeliCredential
 }
 
 // UseCase interface
 type UseCase interface {
 	RegisterStore(input RegisterStoreDtoInput) (entity.ID, error)
 	RegisterMeliCredentials(input RegisterMeliCredentialsDtoInput) error
-	RetrieveMeliCredentialsFromStoreID(id entity.ID) (*Credentials, error)
+	RetrieveMeliCredentialsFromStoreID(id entity.ID) (*[]Credentials, error)
 	RetrieveMeliCredentialsFromMeliUserID(id string) (*Credentials, error)
 	RefreshMeliCredential(storeId entity.ID, refreshToken string) (*Credentials, error)
 }
@@ -31,15 +32,16 @@ type UseCase interface {
 // Repository reader interface
 type RepoReader interface {
 	Get(id string) (*entity.Store, error)
-	RetrieveMeliCredentialsFromStoreID(id entity.ID) (*common.MeliCredential, error)
-	RetrieveMeliCredentialsFromMeliUserID(id string) (*entity.ID, *common.MeliCredential, error)
+	// Retrieves all meli credentials from a store
+	RetrieveMeliCredentialsFromStoreID(id entity.ID) (*[]Credentials, error)
+	RetrieveMeliCredentialsFromMeliUserID(accountId string) (*Credentials, error)
 }
 
 // Repository writer interface
 type RepoWriter interface {
 	Create(e *entity.Store) (entity.ID, error)
 	RegisterMeliCredential(id entity.ID, c *common.MeliCredential) error
-	UpdateMeliCredentials(id entity.ID, c *common.MeliCredential) error
+	UpdateMeliCredentials(accountId entity.ID, c *common.MeliCredential) error
 	Update(e *entity.Store) error
 	Delete(id entity.ID) error
 }
