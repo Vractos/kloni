@@ -14,6 +14,16 @@ test:
 	@echo "Running tests..."
 	@go test ./... -v | sed "/PASS/s//$$(printf "\033[32m✅ PASS\033[0m")/" | sed "/FAIL/s//$$(printf "\033[31m❌ FAIL\033[0m")/" | sed "/RUN/s//$$(printf "\033[33m🏃 RUN\033[0m")/"
 
+## mockgen: generate mocks
+mockgen:
+	@echo "Generating mocks..."
+	@mockgen -source=usecases/announcement/interface.go -destination=usecases/announcement/mock/service_mock.go
+	@mockgen -source=usecases/common/mercadolivre.go -destination=usecases/common/mock/mercadolivre_mock.go
+	@mockgen -source=usecases/common/logger.go -destination=usecases/common/mock/logger_mock.go
+	@mockgen -source=usecases/store/interface.go -destination=usecases/store/mock/service_mock.go
+	@mockgen -source=usecases/order/interface.go -destination=usecases/order/mock/service_mock.go
+
+
 ## coverage: run tests with coverage
 coverage:
 	@echo "Running tests with coverage..."
