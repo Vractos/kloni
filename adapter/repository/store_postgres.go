@@ -7,6 +7,7 @@ import (
 	"github.com/Vractos/kloni/entity"
 	"github.com/Vractos/kloni/pkg/metrics"
 	"github.com/Vractos/kloni/usecases/common"
+	"github.com/Vractos/kloni/usecases/store"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
@@ -70,20 +71,75 @@ func (r *StorePostgreSQL) RegisterMeliCredential(id entity.ID, c *common.MeliCre
 }
 
 // RetrieveMeliCredentials implements store.Repository
-func (r *StorePostgreSQL) RetrieveMeliCredentialsFromStoreID(id entity.ID) (*common.MeliCredential, error) {
-	var credential common.MeliCredential
+func (r *StorePostgreSQL) RetrieveMeliCredentialsFromStoreID(id entity.ID) (*[]store.Credentials, error) {
+	var credentials []store.Credentials
+
+	rows, err := r.db.Query(context.Background(), `
+		SELECT
+			mc.id as account_id,
+			mc.account_name,
+		  mc.user_id AS mercadolivre_user_id,
+			mc.access_token,
+			mc.refresh_token,
+			mc.updated_at
+		FROM
+			mercadolivre_credentials mc
+		WHERE
+			mc.owner_id = $1
+    `, id)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			r.logger.Error(pgErr.Message, pgErr, zap.String("db_error_code", pgErr.Code))
+		}
+		return nil, err
+	}
+
+	for rows.Next() {
+		credential := store.Credentials{MeliCredential: &common.MeliCredential{}}
+
+		err = rows.Scan(
+			&credential.ID,
+			&credential.AccountName,
+			&credential.UserID,
+			&credential.AccessToken,
+			&credential.RefreshToken,
+			&credential.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		credentials = append(credentials, credential)
+	}
+
+	return &credentials, nil
+}
+
+// RetrieveMeliCredentials implements store.Repository
+func (r *StorePostgreSQL) RetrieveMeliCredentialsFromMeliUserID(accountId string) (*store.Credentials, error) {
+	var credential store.Credentials
 
 	err := r.db.QueryRow(context.Background(), `
 	SELECT
-  access_token,
-  user_id,
-    refresh_token,
-    updated_at
-    FROM
-    mercadolivre_credentials
-    WHERE
-    owner_id=$1
-    `, id).Scan(&credential.AccessToken, &credential.UserID, &credential.RefreshToken, &credential.UpdatedAt)
+		mc.id as account_id,
+		mc.owner_id,
+		mc.account_name,
+		mc.access_token,
+		mc.refresh_token,
+		mc.updated_at
+  	FROM
+   		mercadolivre_credentials mc
+     WHERE
+     	id=$1
+	`, accountId).Scan(
+		&credential.ID,
+		&credential.OwnerID,
+		&credential.AccountName,
+		&credential.AccessToken,
+		&credential.RefreshToken,
+		&credential.UpdatedAt,
+	)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -95,47 +151,18 @@ func (r *StorePostgreSQL) RetrieveMeliCredentialsFromStoreID(id entity.ID) (*com
 	return &credential, nil
 }
 
-// RetrieveMeliCredentials implements store.Repository
-func (r *StorePostgreSQL) RetrieveMeliCredentialsFromMeliUserID(id string) (*entity.ID, *common.MeliCredential, error) {
-	var (
-		storeId    entity.ID
-		credential common.MeliCredential
-	)
-
-	err := r.db.QueryRow(context.Background(), `
-	SELECT
-  owner_id,
-  access_token,
-  refresh_token,
-  updated_at
-  FROM
-  mercadolivre_credentials
-  WHERE
-  user_id=$1
-	`, id).Scan(&storeId, &credential.AccessToken, &credential.RefreshToken, &credential.UpdatedAt)
-	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			r.logger.Error(pgErr.Message, pgErr, zap.String("db_error_code", pgErr.Code))
-		}
-		return nil, nil, err
-	}
-
-	return &storeId, &credential, nil
-}
-
 // UpdateMeliCredentials implements store.Repository
-func (r *StorePostgreSQL) UpdateMeliCredentials(id entity.ID, c *common.MeliCredential) error {
+func (r *StorePostgreSQL) UpdateMeliCredentials(accountId entity.ID, c *common.MeliCredential) error {
 	_, err := r.db.Exec(context.Background(), `
     UPDATE
-    mercadolivre_credentials
-    SET 
-    access_token=$1,
-    refresh_token=$2,
-    updated_at=$3
-    WHERE 
-    owner_id=$4
-    `, c.AccessToken, c.RefreshToken, c.UpdatedAt, id)
+    	mercadolivre_credentials
+    SET
+    	access_token=$1,
+     	refresh_token=$2,
+      	updated_at=$3
+    WHERE
+    	id=$4
+    `, c.AccessToken, c.RefreshToken, c.UpdatedAt, accountId)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
