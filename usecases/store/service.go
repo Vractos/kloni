@@ -119,22 +119,23 @@ func (s *StoreService) RetrieveMeliCredentialsFromMeliUserID(id string) (*Creden
 		return nil, err
 	}
 
-	timeNowUTC := time.Now().UTC()
-	if timeNowUTC.Sub(credentials.UpdatedAt.UTC()).Hours() >= 5 {
-		credentialsData, err := s.RefreshMeliCredential(credentials.ID, credentials.RefreshToken)
-		if err != nil {
-			s.logger.Error(
-				"Fail to refresh meli's credentials",
-				err,
-				zap.String("user_id", id),
-			)
-			return nil, err
-		}
-
-		return credentialsData, nil
+	// Check if the credentials are still valid, if not, refresh them
+	// Also, format the data to be returned
+	credentialsData, err := s.validateCredentials(credentials)
+	if err != nil {
+		s.logger.Error(
+			"Fail to validate meli's credentials",
+			err,
+			zap.String("account_id", credentials.ID.String()),
+		)
 	}
 
-	return &Credentials{}, nil
+	return &Credentials{
+		StoreID:         credentials.OwnerID,
+		MeliAccessToken: credentialsData.MeliAccessToken,
+		MeliUserID:      credentialsData.MeliUserID,
+	}, nil
+
 }
 
 func (s *StoreService) RefreshMeliCredential(accountId entity.ID, refreshToken string) (*Credentials, error) {
@@ -160,7 +161,9 @@ func (s *StoreService) RefreshMeliCredential(accountId entity.ID, refreshToken s
 	}
 
 	return &Credentials{
-		ID: accountId,
+		ID:              accountId,
+		MeliAccessToken: credentials.AccessToken,
+		MeliUserID:      credentials.UserID,
 		MeliCredential: &common.MeliCredential{
 			AccessToken: credentials.AccessToken,
 			UserID:      credentials.UserID,

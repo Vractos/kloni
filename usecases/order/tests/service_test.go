@@ -70,7 +70,7 @@ func TestProcessWebhook(t *testing.T) {
 }
 
 func TestProcessOrder(t *testing.T) {
-	storeId := entity.ID(uuid.New())
+	accountId := entity.ID(uuid.New())
 	defaultOrderMessage := order.OrderMessage{
 		Store:         "1",
 		OrderId:       "20210101000000",
@@ -78,7 +78,7 @@ func TestProcessOrder(t *testing.T) {
 		ReceiptHandle: "test-receipt-handle",
 	}
 	defaultMeliCredentials := &store.Credentials{
-		StoreID:         storeId,
+		StoreID:         accountId,
 		MeliAccessToken: "test-access-token",
 		MeliUserID:      "1",
 	}
@@ -116,7 +116,7 @@ func TestProcessOrder(t *testing.T) {
 
 	newOrderScenarios := []struct {
 		name                     string
-		storeId                  entity.ID
+		accountId                entity.ID
 		orderMessage             order.OrderMessage
 		meliOrder                *common.MeliOrder
 		meliCredentials          *store.Credentials
@@ -126,7 +126,7 @@ func TestProcessOrder(t *testing.T) {
 	}{
 		{
 			name:         "default scenario",
-			storeId:      storeId,
+			accountId:    accountId,
 			orderMessage: defaultOrderMessage,
 			meliOrder: &common.MeliOrder{
 				ID:          "20210101000000",
@@ -161,7 +161,7 @@ func TestProcessOrder(t *testing.T) {
 				},
 			},
 			odr: &entity.Order{
-				StoreID:       storeId,
+				AccountID:     accountId,
 				MarketplaceID: "20210101000000",
 				Status:        "paid",
 				Items: []entity.OrderItem{
@@ -176,7 +176,7 @@ func TestProcessOrder(t *testing.T) {
 		},
 		{
 			name:         "default scenario with variation",
-			storeId:      storeId,
+			accountId:    accountId,
 			orderMessage: defaultOrderMessage,
 			meliOrder: &common.MeliOrder{
 				ID:          "20210101000000",
@@ -220,7 +220,7 @@ func TestProcessOrder(t *testing.T) {
 				},
 			},
 			odr: &entity.Order{
-				StoreID:       storeId,
+				AccountID:     accountId,
 				MarketplaceID: "20210101000000",
 				Status:        "paid",
 				Items: []entity.OrderItem{
@@ -235,7 +235,7 @@ func TestProcessOrder(t *testing.T) {
 		},
 		{
 			name:         "default scenario where the sold item is a variation",
-			storeId:      storeId,
+			accountId:    accountId,
 			orderMessage: defaultOrderMessage,
 			meliOrder: &common.MeliOrder{
 				ID:          "20210101000000",
@@ -280,7 +280,7 @@ func TestProcessOrder(t *testing.T) {
 				},
 			},
 			odr: &entity.Order{
-				StoreID:       storeId,
+				AccountID:     accountId,
 				MarketplaceID: "20210101000000",
 				Status:        "paid",
 				Items: []entity.OrderItem{
@@ -296,7 +296,7 @@ func TestProcessOrder(t *testing.T) {
 		},
 		{
 			name:         "more than one item",
-			storeId:      storeId,
+			accountId:    accountId,
 			orderMessage: defaultOrderMessage,
 			meliOrder: &common.MeliOrder{
 				ID:          "20210101000000",
@@ -353,7 +353,7 @@ func TestProcessOrder(t *testing.T) {
 				},
 			},
 			odr: &entity.Order{
-				StoreID:       storeId,
+				AccountID:     accountId,
 				MarketplaceID: "20210101000000",
 				Status:        "paid",
 				Items: []entity.OrderItem{
@@ -373,7 +373,7 @@ func TestProcessOrder(t *testing.T) {
 		},
 		{
 			name:         "more than one item and one doesn't have an SKU",
-			storeId:      storeId,
+			accountId:    accountId,
 			orderMessage: defaultOrderMessage,
 			meliOrder: &common.MeliOrder{
 				ID:          "20210101000000",
@@ -415,7 +415,7 @@ func TestProcessOrder(t *testing.T) {
 				},
 			},
 			odr: &entity.Order{
-				StoreID:       storeId,
+				AccountID:     accountId,
 				MarketplaceID: "20210101000000",
 				Status:        "paid",
 				Items: []entity.OrderItem{

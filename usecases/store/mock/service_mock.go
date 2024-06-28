@@ -42,18 +42,18 @@ func (m *MockUseCase) EXPECT() *MockUseCaseMockRecorder {
 }
 
 // RefreshMeliCredential mocks base method.
-func (m *MockUseCase) RefreshMeliCredential(storeId entity.ID, refreshToken string) (*store.Credentials, error) {
+func (m *MockUseCase) RefreshMeliCredential(accountId entity.ID, refreshToken string) (*store.Credentials, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RefreshMeliCredential", storeId, refreshToken)
+	ret := m.ctrl.Call(m, "RefreshMeliCredential", accountId, refreshToken)
 	ret0, _ := ret[0].(*store.Credentials)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RefreshMeliCredential indicates an expected call of RefreshMeliCredential.
-func (mr *MockUseCaseMockRecorder) RefreshMeliCredential(storeId, refreshToken any) *gomock.Call {
+func (mr *MockUseCaseMockRecorder) RefreshMeliCredential(accountId, refreshToken any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshMeliCredential", reflect.TypeOf((*MockUseCase)(nil).RefreshMeliCredential), storeId, refreshToken)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshMeliCredential", reflect.TypeOf((*MockUseCase)(nil).RefreshMeliCredential), accountId, refreshToken)
 }
 
 // RegisterMeliCredentials mocks base method.
