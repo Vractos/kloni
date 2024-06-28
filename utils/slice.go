@@ -1,6 +1,9 @@
 package utils
 
-import "reflect"
+import (
+	"fmt"
+	"reflect"
+)
 
 func Contains[T Ordered](slice *[]T, v T) bool {
 	for _, e := range *slice {
@@ -26,15 +29,31 @@ func Chunk[T any](slice []T, chunkSize int) [][]T {
 	return chunks
 }
 
-// HashMap is a helper function to convert a slice of structs into a map
-// where the key is the value of the field with the name keyField.
-//
-// The value of the map is the struct itself.
-func HashMap[T any](slice *[]T, keyField string) map[interface{}]T {
+// HashMap creates a map using the specified key field from the elements of the given slice.
+// The key field must be a valid field name in the struct elements of the slice.
+// The function returns the created map and an error, if any.
+func HashMap[T any](slice *[]T, keyField string) (map[interface{}]T, error) {
 	m := make(map[interface{}]T)
-	v := reflect.ValueOf((*slice)[0])
-	for _, e := range *slice {
-		m[v.FieldByName(keyField).Interface()] = e
+
+	if slice == nil || len(*slice) == 0 {
+		return m, nil
 	}
-	return m
+
+	v := reflect.ValueOf((*slice)[0])
+	if v.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("slice elements must be structs")
+	}
+
+	field := v.FieldByName(keyField)
+	if !field.IsValid() {
+		return nil, fmt.Errorf("field %s not found in struct", keyField)
+	}
+
+	for _, e := range *slice {
+		v := reflect.ValueOf(e)
+		key := v.FieldByName(keyField).Interface()
+		m[key] = e
+	}
+
+	return m, nil
 }
