@@ -1,5 +1,7 @@
 resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = true
+  enable_dns_support   = true
 
   tags = {
     Name = "${var.project}-vpc"
@@ -15,7 +17,7 @@ resource "aws_internet_gateway" "main_vpc_internet_gateway" {
 }
 
 resource "aws_eip" "elastic_ip" {
-  vpc = true
+  vpc        = true
   depends_on = [aws_internet_gateway.main_vpc_internet_gateway]
   tags = {
     Name = "${var.project}-eip"
@@ -25,10 +27,10 @@ resource "aws_eip" "elastic_ip" {
 resource "aws_subnet" "public" {
   vpc_id = aws_vpc.main.id
 
-  cidr_block = "10.0.1.0/24"
-  availability_zone = data.aws_availability_zones.aws_az.names[0]
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = data.aws_availability_zones.aws_az.names[0]
   map_public_ip_on_launch = true
-  
+
   tags = {
     Name = "${var.project}-public-subnet"
   }
@@ -36,15 +38,15 @@ resource "aws_subnet" "public" {
 
 
 resource "aws_subnet" "private" {
-  count = 2
+  count  = 2
   vpc_id = aws_vpc.main.id
 
-  cidr_block = "10.0.${count.index+2}.0/24"
-  availability_zone = data.aws_availability_zones.aws_az.names[count.index+1]
+  cidr_block              = "10.0.${count.index + 2}.0/24"
+  availability_zone       = data.aws_availability_zones.aws_az.names[count.index + 1]
   map_public_ip_on_launch = false
-  
+
   tags = {
-    Name = "${var.project}${count.index+1}-private-subnet"
+    Name = "${var.project}${count.index + 1}-private-subnet"
   }
 }
 
@@ -70,14 +72,14 @@ resource "aws_route_table" "private_subnet_route_table" {
 }
 
 resource "aws_route_table_association" "public_subnet_route_table_association" {
-  subnet_id = aws_subnet.public.id
+  subnet_id      = aws_subnet.public.id
   route_table_id = aws_route_table.public_subnet_route_table.id
 }
 
 resource "aws_route_table_association" "private_subnet_route_table_association" {
   count = 2
 
-  subnet_id = element(aws_subnet.private[*].id, count.index)
+  subnet_id      = element(aws_subnet.private[*].id, count.index)
   route_table_id = aws_route_table.private_subnet_route_table.id
 }
 resource "aws_security_group" "server_security_group" {
@@ -87,24 +89,24 @@ resource "aws_security_group" "server_security_group" {
 
   ingress {
     description = "Allow all traffic through HTTP"
-    from_port = 80
-    to_port = 80
-    protocol = "tcp"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
   ingress {
     description = "Allow all traffic through HTTPS (TLS)"
-    from_port = 443
-    to_port = 443
-    protocol = "tcp"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
     description = "Allow SSH from my computer"
-    from_port = 22
-    to_port = 22
-    protocol = "tcp"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
     cidr_blocks = var.my_public_ip
   }
 
@@ -126,7 +128,7 @@ resource "aws_security_group" "database_security_group" {
   description = "Allow Datababse traffic"
   vpc_id      = aws_vpc.main.id
 
-    ingress {
+  ingress {
     description     = "Allow Postgres traffic from only the server sg"
     from_port       = "5432"
     to_port         = "5432"
@@ -136,7 +138,7 @@ resource "aws_security_group" "database_security_group" {
 
   tags = {
     Name = "${var.project}_database_security_group"
-  } 
+  }
 }
 
 resource "aws_security_group" "redis_security_group" {
@@ -144,7 +146,7 @@ resource "aws_security_group" "redis_security_group" {
   description = "Allow Redis traffic"
   vpc_id      = aws_vpc.main.id
 
-    ingress {
+  ingress {
     description     = "Allow Redis traffic from only the server sg"
     from_port       = "6379"
     to_port         = "6379"
@@ -154,5 +156,5 @@ resource "aws_security_group" "redis_security_group" {
 
   tags = {
     Name = "${var.project}redis_security_group"
-  } 
+  }
 }
