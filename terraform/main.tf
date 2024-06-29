@@ -99,37 +99,10 @@ moved {
   to   = module.computing[0]
 }
 
-module "tailscale" {
-  source = "./modules/tailscale"
-  count  = (terraform.workspace != "dev") ? 1 : 0
-
-  project                = var.project
-  key_name               = aws_key_pair.default_key.key_name
-  subnet_id              = local.network_outputs.public_subnet
-  vpc_id                 = local.network_outputs.vpc_id
-  vpc_cidr               = local.network_outputs.vpc_cidr
-  tailscale_authkey      = var.tailscale_authkey # You'll need to add this variable
-  private_route_table_id = local.network_outputs.private_route_table_id
-}
-
-moved {
-  from = module.tailscale
-  to   = module.tailscale[0]
-}
-
-resource "aws_security_group_rule" "allow_tailscale_to_db" {
-  count             = (terraform.workspace != "dev") ? 1 : 0
-  type              = "ingress"
-  from_port         = 5432
-  to_port           = 5432
-  protocol          = "tcp"
-  cidr_blocks       = [var.tailscale_cidr]
-  security_group_id = local.network_outputs.database_security_group_id
-}
-
 module "cache" {
-  source  = "./modules/cache"
-  count   = (terraform.workspace != "dev") ? 1 : 0
+  source = "./modules/cache"
+  # count   = (terraform.workspace != "dev") ? 1 : 0
+  count   = (terraform.workspace != "dev") ? 0 : 1
   project = var.project
   depends_on = [
     module.network
