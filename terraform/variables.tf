@@ -34,29 +34,3 @@ variable "ssh_public_key" {
   sensitive = true
   type      = string
 }
-
-variable "vpn_server_certificate_arn" {
-  type     = string
-  nullable = true
-}
-
-variable "vpn_client_root_certificate_chain_arn" {
-  type     = string
-  nullable = true
-}
-
-variable "tailscale_ami" {
-  description = "AMI ID for the tailscale subnet router"
-  type        = string
-}
-
-variable "tailscale_authkey" {
-  description = "tailscale authentication key"
-  type        = string
-}
-
-variable "tailscale_cidr" {
-  description = "tailscale CIDR block"
-  type        = string
-  default     = "100.64.0.0/10"
-}
