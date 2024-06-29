@@ -39,6 +39,9 @@ locals {
     database_security_group_id = module.network[0].database_security_group_id
     redis_security_group_id    = module.network[0].redis_security_group_id
     server_security_group_id   = module.network[0].server_security_group_id
+    vpc_cidr                   = module.network[0].vpc_cidr
+    private_route_table_id     = module.network[0].private_route_table_id
+    vpc_enable_dns_hostnames   = module.network[0].vpc_enable_dns_hostnames
     } : {
     vpc_id                     = null
     eip_id                     = null
@@ -48,6 +51,9 @@ locals {
     database_security_group_id = null
     redis_security_group_id    = null
     server_security_group_id   = null
+    vpc_cidr                   = null
+    private_route_table_id     = null
+    vpc_enable_dns_hostnames   = null
   }
 }
 
@@ -72,7 +78,7 @@ moved {
 module "queue" {
   source                 = "./modules/queue"
   project                = var.project
-  sqs_queue_name                  = (terraform.workspace == "prod") ? "orders" : "order-${terraform.workspace}"
+  sqs_queue_name         = (terraform.workspace == "prod") ? "orders" : "order-${terraform.workspace}"
   sqs_queue_allowed_user = data.aws_iam_user.sdk_user.arn
 }
 
@@ -91,6 +97,34 @@ module "computing" {
 moved {
   from = module.computing
   to   = module.computing[0]
+}
+
+module "tailscale" {
+  source = "./modules/tailscale"
+  count  = (terraform.workspace != "dev") ? 1 : 0
+
+  project                = var.project
+  key_name               = aws_key_pair.default_key.key_name
+  subnet_id              = local.network_outputs.public_subnet
+  vpc_id                 = local.network_outputs.vpc_id
+  vpc_cidr               = local.network_outputs.vpc_cidr
+  tailscale_authkey      = var.tailscale_authkey # You'll need to add this variable
+  private_route_table_id = local.network_outputs.private_route_table_id
+}
+
+moved {
+  from = module.tailscale
+  to   = module.tailscale[0]
+}
+
+resource "aws_security_group_rule" "allow_tailscale_to_db" {
+  count             = (terraform.workspace != "dev") ? 1 : 0
+  type              = "ingress"
+  from_port         = 5432
+  to_port           = 5432
+  protocol          = "tcp"
+  cidr_blocks       = [var.tailscale_cidr]
+  security_group_id = local.network_outputs.database_security_group_id
 }
 
 module "cache" {
