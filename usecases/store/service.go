@@ -108,7 +108,7 @@ func (s *StoreService) RetrieveMeliCredentialsFromStoreID(id entity.ID) (*[]Cred
 	return credentials, nil
 }
 
-func (s *StoreService) RetrieveMeliCredentialsFromMeliUserID(id string) (*Credentials, error) {
+func (s *StoreService) RetrieveMeliCredentialsFromMeliUserID(id string) (*[]Credentials, error) {
 	credentials, err := s.repo.RetrieveMeliCredentialsFromMeliUserID(id)
 	if err != nil {
 		s.logger.Error(
@@ -121,20 +121,28 @@ func (s *StoreService) RetrieveMeliCredentialsFromMeliUserID(id string) (*Creden
 
 	// Check if the credentials are still valid, if not, refresh them
 	// Also, format the data to be returned
-	credentialsData, err := s.validateCredentials(credentials)
-	if err != nil {
-		s.logger.Error(
-			"Fail to validate meli's credentials",
-			err,
-			zap.String("account_id", credentials.ID.String()),
-		)
+	for i, credential := range *credentials {
+		credentialsData, err := s.validateCredentials(&credential)
+		if err != nil {
+			s.logger.Error(
+				"Fail to validate meli's credentials",
+				err,
+				zap.String("account_id", credential.ID.String()),
+			)
+		}
+
+		(*credentials)[i] = Credentials{
+			ID:          credential.ID,
+			OwnerID:     credential.OwnerID,
+			AccountName: credential.AccountName,
+			MeliCredential: &common.MeliCredential{
+				AccessToken: credentialsData.AccessToken,
+				UserID:      credentialsData.UserID,
+			},
+		}
 	}
 
-	return &Credentials{
-		StoreID:         credentials.OwnerID,
-		MeliAccessToken: credentialsData.MeliAccessToken,
-		MeliUserID:      credentialsData.MeliUserID,
-	}, nil
+	return credentials, nil
 
 }
 
@@ -161,12 +169,13 @@ func (s *StoreService) RefreshMeliCredential(accountId entity.ID, refreshToken s
 	}
 
 	return &Credentials{
-		ID:              accountId,
-		MeliAccessToken: credentials.AccessToken,
-		MeliUserID:      credentials.UserID,
+		ID: accountId,
 		MeliCredential: &common.MeliCredential{
 			AccessToken: credentials.AccessToken,
 			UserID:      credentials.UserID,
 		},
 	}, nil
 }
+
+// Exported for testing purposes
+var ValidateCredentials = (*StoreService).validateCredentials
