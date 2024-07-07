@@ -10,12 +10,6 @@ type Credentials struct {
 	OwnerID     entity.ID
 	AccountName *string
 	*common.MeliCredential
-	// Deprecated: Use OwnerID instead
-	StoreID entity.ID
-	// Deprecated: Use MeliCredential instead
-	MeliUserID string
-	// Deprecated: Use MeliCredential instead
-	MeliAccessToken string
 }
 
 // UseCase interface
@@ -24,7 +18,8 @@ type UseCase interface {
 	RegisterMeliCredentials(input RegisterMeliCredentialsDtoInput) error
 	// Retrieve all the meli credentials from a store
 	RetrieveMeliCredentialsFromStoreID(id entity.ID) (*[]Credentials, error)
-	RetrieveMeliCredentialsFromMeliUserID(id string) (*Credentials, error)
+	// Retrieve all meli credentials from a meli user id
+	RetrieveMeliCredentialsFromMeliUserID(id string) (*[]Credentials, error)
 	RefreshMeliCredential(accountId entity.ID, refreshToken string) (*Credentials, error)
 }
 
@@ -54,7 +49,7 @@ type RepoReader interface {
 	// 		UpdateAt: "2021-01-01T00:00:00Z",
 	// 	}
 	//
-	RetrieveMeliCredentialsFromMeliUserID(accountId string) (*Credentials, error)
+	RetrieveMeliCredentialsFromMeliUserID(accountId string) (*[]Credentials, error)
 }
 
 // Repository writer interface
