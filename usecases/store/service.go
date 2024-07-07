@@ -178,4 +178,4 @@ func (s *StoreService) RefreshMeliCredential(accountId entity.ID, refreshToken s
 }
 
 // Exported for testing purposes
-var ValidateCredentials = (*StoreService).validateCredentials
+var ValidateCredentialsTest = (*StoreService).validateCredentials
