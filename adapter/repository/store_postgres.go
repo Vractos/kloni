@@ -98,7 +98,7 @@ func (r *StorePostgreSQL) RetrieveMeliCredentialsFromStoreID(id entity.ID) (*[]s
 	for rows.Next() {
 		credential := store.Credentials{MeliCredential: &common.MeliCredential{}}
 
-		err = rows.Scan(
+		err := rows.Scan(
 			&credential.ID,
 			&credential.AccountName,
 			&credential.UserID,
@@ -117,10 +117,10 @@ func (r *StorePostgreSQL) RetrieveMeliCredentialsFromStoreID(id entity.ID) (*[]s
 }
 
 // RetrieveMeliCredentials implements store.Repository
-func (r *StorePostgreSQL) RetrieveMeliCredentialsFromMeliUserID(accountId string) (*store.Credentials, error) {
-	var credential store.Credentials
+func (r *StorePostgreSQL) RetrieveMeliCredentialsFromMeliUserID(accountId string) (*[]store.Credentials, error) {
+	var credentials []store.Credentials
 
-	err := r.db.QueryRow(context.Background(), `
+	rows, err := r.db.Query(context.Background(), `
 	SELECT
 		mc.id as account_id,
 		mc.owner_id,
@@ -132,14 +132,7 @@ func (r *StorePostgreSQL) RetrieveMeliCredentialsFromMeliUserID(accountId string
    		mercadolivre_credentials mc
      WHERE
      	id=$1
-	`, accountId).Scan(
-		&credential.ID,
-		&credential.OwnerID,
-		&credential.AccountName,
-		&credential.AccessToken,
-		&credential.RefreshToken,
-		&credential.UpdatedAt,
-	)
+	`, accountId)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -148,7 +141,24 @@ func (r *StorePostgreSQL) RetrieveMeliCredentialsFromMeliUserID(accountId string
 		return nil, err
 	}
 
-	return &credential, nil
+	for rows.Next() {
+		credential := store.Credentials{MeliCredential: &common.MeliCredential{}}
+
+		err := rows.Scan(
+			&credential.ID,
+			&credential.OwnerID,
+			&credential.AccountName,
+			&credential.AccessToken,
+			&credential.RefreshToken,
+			&credential.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+	}
+
+	return &credentials, nil
 }
 
 // UpdateMeliCredentials implements store.Repository
