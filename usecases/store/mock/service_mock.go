@@ -86,10 +86,10 @@ func (mr *MockUseCaseMockRecorder) RegisterStore(input any) *gomock.Call {
 }
 
 // RetrieveMeliCredentialsFromMeliUserID mocks base method.
-func (m *MockUseCase) RetrieveMeliCredentialsFromMeliUserID(id string) (*store.Credentials, error) {
+func (m *MockUseCase) RetrieveMeliCredentialsFromMeliUserID(id string) (*[]store.Credentials, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RetrieveMeliCredentialsFromMeliUserID", id)
-	ret0, _ := ret[0].(*store.Credentials)
+	ret0, _ := ret[0].(*[]store.Credentials)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -154,10 +154,10 @@ func (mr *MockRepoReaderMockRecorder) Get(id any) *gomock.Call {
 }
 
 // RetrieveMeliCredentialsFromMeliUserID mocks base method.
-func (m *MockRepoReader) RetrieveMeliCredentialsFromMeliUserID(accountId string) (*store.Credentials, error) {
+func (m *MockRepoReader) RetrieveMeliCredentialsFromMeliUserID(accountId string) (*[]store.Credentials, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RetrieveMeliCredentialsFromMeliUserID", accountId)
-	ret0, _ := ret[0].(*store.Credentials)
+	ret0, _ := ret[0].(*[]store.Credentials)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -359,10 +359,10 @@ func (mr *MockRepositoryMockRecorder) RegisterMeliCredential(id, c any) *gomock.
 }
 
 // RetrieveMeliCredentialsFromMeliUserID mocks base method.
-func (m *MockRepository) RetrieveMeliCredentialsFromMeliUserID(accountId string) (*store.Credentials, error) {
+func (m *MockRepository) RetrieveMeliCredentialsFromMeliUserID(accountId string) (*[]store.Credentials, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RetrieveMeliCredentialsFromMeliUserID", accountId)
-	ret0, _ := ret[0].(*store.Credentials)
+	ret0, _ := ret[0].(*[]store.Credentials)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
