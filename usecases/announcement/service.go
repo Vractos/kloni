@@ -100,7 +100,7 @@ func (a *AnnouncementService) RetrieveAnnouncementsFromAllAccounts(sku string, c
 }
 
 func (a *AnnouncementService) UpdateQuantity(id string, newQuantity int, credentials store.Credentials, variationIDs ...int) error {
-	err := a.meli.UpdateQuantity(newQuantity, id, credentials.MeliAccessToken, variationIDs...)
+	err := a.meli.UpdateQuantity(newQuantity, id, credentials.AccessToken, variationIDs...)
 	if err != nil {
 		cErr := &AnnouncementError{
 			Message:        "Error to update quantity",
