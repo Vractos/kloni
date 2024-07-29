@@ -654,7 +654,7 @@ func TestValidateCredentials(t *testing.T) {
 	mockStoreRepo.EXPECT().UpdateMeliCredentials(accountId, refreshedCredentials)
 	mockLogger.EXPECT().Info("Meli's credentials were updated", zap.String("account_id", accountId.String()))
 
-	cred, err := store.ValidateCredentials(storeService, credentials)
+	cred, err := store.ValidateCredentialsTest(storeService, credentials)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
