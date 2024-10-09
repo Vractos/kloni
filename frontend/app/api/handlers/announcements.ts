@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { IAnnouncement } from '../../../lib/interfaces/announcements'
+import { IAnnouncement, Status } from '../../../lib/interfaces/announcements'
 import { getAccessToken } from '@auth0/nextjs-auth0/edge';
 
 
@@ -26,9 +26,10 @@ async function getAnnouncements(sku: string): Promise<IAnnouncement[]> {
     const data = await res.json() as IAnnouncement[]
 
     if (!data || data.length === 0) {
-      console.log('Empty JSON response');
       return [];
     }
+
+
 
     data.map((announcement: IAnnouncement): IAnnouncement => ({
       id: announcement.id,
@@ -36,10 +37,16 @@ async function getAnnouncements(sku: string): Promise<IAnnouncement[]> {
       picture: announcement.picture,
       price: announcement.price,
       quantity: announcement.quantity,
+      status: announcement.status,
       sku: announcement.sku,
-      link: announcement.link
+      link: announcement.link,
+      account: {
+        id: announcement.account.id,
+        name: announcement.account.name
+      }
     }))
 
+    console.log(data[0])
     return data
   } catch (error) {
     console.log(error)
