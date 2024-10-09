@@ -1,5 +1,5 @@
 # Build
-FROM golang:1.18 as builder
+FROM golang:1.18 AS builder
 
 WORKDIR /usr/src/app/
 
@@ -23,7 +23,7 @@ ENV APP_ENV ${app_env}
 ARG auth0_domain
 ENV AUTH0_DOMAIN ${auth0_domain}
 
-ARG auth0_audience 
+ARG auth0_audience
 ENV AUTH0_AUDIENCE ${auth0_audience}
 
 # Postgres #
@@ -74,4 +74,3 @@ COPY --from=builder /usr/src/app/bin/kloni ./
 
 EXPOSE 80
 ENTRYPOINT [ "./kloni" ]
-
