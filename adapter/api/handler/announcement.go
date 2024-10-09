@@ -103,7 +103,7 @@ func getAnnouncements(announce announcement.UseCase, store store.UseCase, logger
 			return
 		}
 
-		output := []presenter.Announcement{}
+		output := []*presenter.Announcement{}
 		for _, ann := range *anns {
 			if ann.Announcements == nil {
 				continue
@@ -117,10 +117,11 @@ func getAnnouncements(announce announcement.UseCase, store store.UseCase, logger
 			}
 
 			for _, an := range *ann.Announcements {
-				output = append(output, presenter.Announcement{
+				output = append(output, &presenter.Announcement{
 					ID:           an.ID,
 					Title:        an.Title,
 					Price:        an.Price,
+					Status:       an.Status,
 					ThumbnailURL: an.ThumbnailURL,
 					Quantity:     an.Quantity,
 					Sku:          an.Sku,

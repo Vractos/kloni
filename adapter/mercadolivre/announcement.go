@@ -165,6 +165,7 @@ func (m *MercadoLivre) GetAnnouncements(ids []string, accessToken string) (*[]co
 			Title:        a.Body.Title,
 			Quantity:     a.Body.AvailableQuantity,
 			Price:        a.Body.Price,
+			Status:       a.Body.Status,
 			ThumbnailURL: a.Body.Thumbnail,
 			Sku:          sku,
 			Variations:   variations,
