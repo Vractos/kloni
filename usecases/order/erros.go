@@ -3,12 +3,12 @@ package order
 import (
 	"fmt"
 
-	"github.com/Vractos/kloni/usecases/common"
+	"github.com/Vractos/kloni/usecases/announcement"
 )
 
 type OrderError struct {
 	Message            string
-	AnnouncementsError []common.MeliAnnouncement
+	AnnouncementsError []announcement.Announcements
 }
 
 func (o *OrderError) Error() string {
