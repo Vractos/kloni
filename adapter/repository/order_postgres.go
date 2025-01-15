@@ -34,7 +34,7 @@ func (r *OrderPostgreSQL) RegisterOrder(o *entity.Order) error {
 	_, err = tx.Exec(ctx, `
   INSERT INTO orders(id, store_id, marketplace_id, date_created, status)
   VALUES($1,$2,$3,$4,$5)
-  `, o.ID, o.StoreID, o.MarketplaceID, o.DateCreated, o.Status)
+  `, o.ID, o.AccountID, o.MarketplaceID, o.DateCreated, o.Status)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -79,7 +79,7 @@ func (r *OrderPostgreSQL) GetOrder(orderMarketplaceId string) (*entity.Order, er
   orders
   WHERE
   marketplace_id=$1
-	`, orderMarketplaceId).Scan(&order.ID, &order.StoreID, &order.MarketplaceID, &order.Status)
+	`, orderMarketplaceId).Scan(&order.ID, &order.AccountID, &order.MarketplaceID, &order.Status)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
