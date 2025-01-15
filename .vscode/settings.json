@@ -11,5 +11,6 @@
       "password": "user123"
     }
   ],
-  "dotenv.enableAutocloaking": false
+  "dotenv.enableAutocloaking": false,
+  "makefile.configureOnOpen": true
 }
