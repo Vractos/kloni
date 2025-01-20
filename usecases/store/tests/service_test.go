@@ -47,13 +47,16 @@ func TestStoreUseCase(t *testing.T) {
 	})
 
 	t.Run("register meli credentials", func(t *testing.T) {
+		// credentialID -> Can have any value but must be a valid entity.ID
+		credentialID := entity.ID(uuid.New())
 		inputMeliCredentials := store.RegisterMeliCredentialsDtoInput{
-			Store: entity.ID(uuid.New()),
-			Code:  "test-code",
+			Store:       entity.ID(uuid.New()),
+			Code:        "test-code",
+			AccountName: "Test Account",
 		}
 
 		mockMercadoLivre.EXPECT().RegisterCredential(inputMeliCredentials.Code).Return(&common.MeliCredential{}, nil)
-		mockStoreRepo.EXPECT().RegisterMeliCredential(inputMeliCredentials.Store, gomock.AssignableToTypeOf(&common.MeliCredential{})).Return(nil)
+		mockStoreRepo.EXPECT().RegisterMeliCredential(gomock.AssignableToTypeOf(credentialID), inputMeliCredentials.Store, gomock.AssignableToTypeOf(&common.MeliCredential{}), inputMeliCredentials.AccountName).Return(nil)
 
 		err := storeService.RegisterMeliCredentials(inputMeliCredentials)
 		if err != nil {

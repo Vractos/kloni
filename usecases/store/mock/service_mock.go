@@ -236,17 +236,17 @@ func (mr *MockRepoWriterMockRecorder) Delete(id any) *gomock.Call {
 }
 
 // RegisterMeliCredential mocks base method.
-func (m *MockRepoWriter) RegisterMeliCredential(id entity.ID, c *common.MeliCredential) error {
+func (m *MockRepoWriter) RegisterMeliCredential(id, owner_id entity.ID, c *common.MeliCredential, account_name string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterMeliCredential", id, c)
+	ret := m.ctrl.Call(m, "RegisterMeliCredential", id, owner_id, c, account_name)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RegisterMeliCredential indicates an expected call of RegisterMeliCredential.
-func (mr *MockRepoWriterMockRecorder) RegisterMeliCredential(id, c any) *gomock.Call {
+func (mr *MockRepoWriterMockRecorder) RegisterMeliCredential(id, owner_id, c, account_name any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterMeliCredential", reflect.TypeOf((*MockRepoWriter)(nil).RegisterMeliCredential), id, c)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterMeliCredential", reflect.TypeOf((*MockRepoWriter)(nil).RegisterMeliCredential), id, owner_id, c, account_name)
 }
 
 // Update mocks base method.
@@ -345,17 +345,17 @@ func (mr *MockRepositoryMockRecorder) Get(id any) *gomock.Call {
 }
 
 // RegisterMeliCredential mocks base method.
-func (m *MockRepository) RegisterMeliCredential(id entity.ID, c *common.MeliCredential) error {
+func (m *MockRepository) RegisterMeliCredential(id, owner_id entity.ID, c *common.MeliCredential, account_name string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterMeliCredential", id, c)
+	ret := m.ctrl.Call(m, "RegisterMeliCredential", id, owner_id, c, account_name)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RegisterMeliCredential indicates an expected call of RegisterMeliCredential.
-func (mr *MockRepositoryMockRecorder) RegisterMeliCredential(id, c any) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) RegisterMeliCredential(id, owner_id, c, account_name any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterMeliCredential", reflect.TypeOf((*MockRepository)(nil).RegisterMeliCredential), id, c)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterMeliCredential", reflect.TypeOf((*MockRepository)(nil).RegisterMeliCredential), id, owner_id, c, account_name)
 }
 
 // RetrieveMeliCredentialsFromMeliUserID mocks base method.

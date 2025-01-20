@@ -55,7 +55,7 @@ type RepoReader interface {
 // Repository writer interface
 type RepoWriter interface {
 	Create(e *entity.Store) (entity.ID, error)
-	RegisterMeliCredential(id entity.ID, c *common.MeliCredential) error
+	RegisterMeliCredential(id entity.ID, owner_id entity.ID, c *common.MeliCredential, account_name string) error
 	UpdateMeliCredentials(accountId entity.ID, c *common.MeliCredential) error
 	Update(e *entity.Store) error
 	Delete(id entity.ID) error

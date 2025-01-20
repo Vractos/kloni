@@ -41,7 +41,10 @@ func (s *StoreService) RegisterMeliCredentials(input RegisterMeliCredentialsDtoI
 		)
 		return err
 	}
-	if err := s.repo.RegisterMeliCredential(input.Store, credentials); err != nil {
+
+	id := entity.NewID()
+
+	if err := s.repo.RegisterMeliCredential(id, input.Store, credentials, input.AccountName); err != nil {
 		s.logger.Error(
 			"Fail to store meli's credentials",
 			err,
