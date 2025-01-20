@@ -51,7 +51,13 @@ func HashMap[T any](slice *[]T, keyField string) (map[interface{}]T, error) {
 
 	for _, e := range *slice {
 		v := reflect.ValueOf(e)
-		key := v.FieldByName(keyField).Interface()
+		field := v.FieldByName(keyField)
+
+		if field.IsZero() {
+			return nil, fmt.Errorf("field %s is zero", keyField)
+		}
+
+		key := field.Interface()
 		m[key] = e
 	}
 
