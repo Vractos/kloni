@@ -14,6 +14,7 @@ import (
 	mock_order "github.com/Vractos/kloni/usecases/order/mock"
 	"github.com/Vractos/kloni/usecases/store"
 	mock_store "github.com/Vractos/kloni/usecases/store/mock"
+	"github.com/Vractos/kloni/utils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
@@ -21,67 +22,132 @@ import (
 	"go.uber.org/zap"
 )
 
+// TestProcessWebhook tests the ProcessWebhook method of OrderService.
+// It verifies:
+// 1. Successful webhook processing
+// 2. Error handling when posting to queue fails
 func TestProcessWebhook(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mocks := newMocks(ctrl)
-	orderService := mocks.newOrderService()
-
-	notification := order.OrderWebhookDtoInput{
-		ID:            "test-id",
-		Resource:      "/orders/20210101000000",
-		UserID:        1,
-		Attempts:      0,
-		Topic:         "orders_v2",
-		ApplicationID: 1,
-		Received:      "2022-10-30T16:19:20.129Z",
-		Sent:          "2022-10-30T16:19:20.106Z",
+	tests := []struct {
+		name       string
+		input      order.OrderWebhookDtoInput
+		setupMocks func(*Mocks)
+		wantErr    bool
+		errMessage string
+	}{
+		{
+			name: "successful webhook processing",
+			input: order.OrderWebhookDtoInput{
+				ID:            "test-id",
+				Resource:      "/orders/20210101000000",
+				UserID:        1,
+				Attempts:      0,
+				Topic:         "orders_v2",
+				ApplicationID: 1,
+				Received:      "2022-10-30T16:19:20.129Z",
+				Sent:          "2022-10-30T16:19:20.106Z",
+			},
+			setupMocks: func(m *Mocks) {
+				m.mockOrderQueue.EXPECT().PostOrderNotification(gomock.Any()).Return(nil)
+			},
+			wantErr: false,
+		},
+		{
+			name: "error posting to queue",
+			input: order.OrderWebhookDtoInput{
+				ID:            "test-id",
+				Resource:      "/orders/20210101000000",
+				UserID:        1,
+				Attempts:      0,
+				Topic:         "orders_v2",
+				ApplicationID: 1,
+				Received:      "2022-10-30T16:19:20.129Z",
+				Sent:          "2022-10-30T16:19:20.106Z",
+			},
+			setupMocks: func(m *Mocks) {
+				m.mockOrderQueue.EXPECT().PostOrderNotification(gomock.Any()).Return(errors.New("queue error"))
+				m.mockLogger.EXPECT().Error(
+					"Error to post order notification",
+					gomock.Any(),
+					zap.String("notification_id", "test-id"),
+					zap.Int("user_id", 1),
+					zap.Int("attempts", 0),
+					zap.String("sent", "2022-10-30T16:19:20.106Z"),
+				)
+			},
+			wantErr:    true,
+			errMessage: "error to post order notification",
+		},
 	}
 
-	t.Run("process webhook", func(t *testing.T) {
-		mocks.mockOrderQueue.EXPECT().PostOrderNotification(notification).Return(nil)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-		err := orderService.ProcessWebhook(notification)
-		if err != nil {
-			t.Errorf("Error processing webhook: %v", err)
-		}
-	})
+			mocks := newMocks(ctrl)
+			orderService := mocks.newOrderService()
 
-	t.Run("process webhook - error posting to queue", func(t *testing.T) {
-		mocks.mockOrderQueue.EXPECT().PostOrderNotification(notification).Return(errors.New("error posting to queue"))
-		mocks.mockLogger.EXPECT().Error(
-			"Error to post order notification",
-			errors.New("error posting to queue"),
-			zap.String("notification_id", notification.ID),
-			zap.Int("user_id", notification.UserID),
-			zap.Int("attempts", notification.Attempts),
-			zap.String("sent", notification.Sent),
-		)
+			tt.setupMocks(mocks)
 
-		err := orderService.ProcessWebhook(notification)
-		if err == nil {
-			t.Errorf("Error testing error on processing webhook: %v", err)
-		}
-		if err.Error() != "error to post order notification" {
-			t.Errorf("Wrong error message: %v", err)
-		}
-	})
+			err := orderService.ProcessWebhook(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ProcessWebhook() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && err.Error() != tt.errMessage {
+				t.Errorf("ProcessWebhook() error = %v, want %v", err, tt.errMessage)
+			}
+		})
+	}
 }
 
+// TestProcessOrder tests the ProcessOrder method of OrderService.
+// Test scenarios include:
+// 1. Standard order processing
+// 2. Orders with variations
+// 3. Orders with multiple items
+// 4. Orders with items lacking SKUs
+// 5. Various edge cases and error conditions
 func TestProcessOrder(t *testing.T) {
+
+	// -------------------------------------------------------
+	// ------------------------ Mocks ------------------------
+	// -------------------------------------------------------
 	accountId := entity.ID(uuid.New())
+	seccondAccountId := entity.ID(uuid.New())
 	defaultOrderMessage := order.OrderMessage{
 		Store:         "1",
 		OrderId:       "20210101000000",
 		Attempts:      0,
 		ReceiptHandle: "test-receipt-handle",
 	}
-	defaultMeliCredentials := &store.Credentials{
-		StoreID:         accountId,
-		MeliAccessToken: "test-access-token",
-		MeliUserID:      "1",
+
+	defaultMeliCredentials := &[]store.Credentials{
+		{
+			ID: accountId,
+			MeliCredential: &common.MeliCredential{
+				AccessToken: "test-access-token",
+				UserID:      "1",
+			},
+		},
+		{
+			ID: seccondAccountId,
+			MeliCredential: &common.MeliCredential{
+				AccessToken: "test-access-token-2",
+				UserID:      "2",
+			},
+		},
 	}
+
+	nilCredentials := &[]store.Credentials{
+		{
+			ID: accountId,
+			MeliCredential: &common.MeliCredential{
+				AccessToken: "missing",
+			},
+		},
+	}
+
 	defaultMeliOrder := &common.MeliOrder{
 		ID:          "20210101000000",
 		DateCreated: "2022-10-30T16:19:20.129Z",
@@ -95,32 +161,41 @@ func TestProcessOrder(t *testing.T) {
 			},
 		},
 	}
-	defaultMeliAnnouncementsClones := [][]common.MeliAnnouncement{
+
+	defaultMeliAnnouncementsClones := []announcement.Announcements{
 		{
-			{
-				ID:       "1",
-				Title:    "test-title",
-				Quantity: 1,
-				Price:    1.0,
-				Sku:      "test-sku",
-			},
-			{
-				ID:       "2",
-				Title:    "test-title2",
-				Quantity: 1,
-				Price:    1.0,
-				Sku:      "test-sku",
+			AccountID: accountId,
+			Announcements: &[]common.MeliAnnouncement{
+				{
+					ID:       "1",
+					Title:    "test-title",
+					Quantity: 1,
+					Price:    1.0,
+					Sku:      "test-sku",
+				},
+				{
+					ID:       "2",
+					Title:    "test-title2",
+					Quantity: 1,
+					Price:    1.0,
+					Sku:      "test-sku",
+				},
 			},
 		},
 	}
+
+	// -------------------------------------------------------
+	// ---------------- Scenarios -> New order ---------------
+	// -------------------------------------------------------
 
 	newOrderScenarios := []struct {
 		name                     string
 		accountId                entity.ID
 		orderMessage             order.OrderMessage
 		meliOrder                *common.MeliOrder
-		meliCredentials          *store.Credentials
-		orderAnnouncementsClones [][]common.MeliAnnouncement
+		meliCredentials          *[]store.Credentials
+		rootCredentials          *store.Credentials
+		orderAnnouncementsClones [][]announcement.Announcements
 		odr                      *entity.Order
 		OrderMatcher             *OrderMatcher
 	}{
@@ -142,21 +217,27 @@ func TestProcessOrder(t *testing.T) {
 				},
 			},
 			meliCredentials: defaultMeliCredentials,
-			orderAnnouncementsClones: [][]common.MeliAnnouncement{
+			rootCredentials: &(*defaultMeliCredentials)[0],
+			orderAnnouncementsClones: [][]announcement.Announcements{
 				{
 					{
-						ID:       "1",
-						Title:    "test-title",
-						Quantity: 1,
-						Price:    1.0,
-						Sku:      "test-sku",
-					},
-					{
-						ID:       "2",
-						Title:    "test-title2",
-						Quantity: 1,
-						Price:    1.0,
-						Sku:      "test-sku",
+						AccountID: accountId,
+						Announcements: &[]common.MeliAnnouncement{
+							{
+								ID:       "1",
+								Title:    "test-title",
+								Quantity: 1,
+								Price:    1.0,
+								Sku:      "test-sku",
+							},
+							{
+								ID:       "2",
+								Title:    "test-title2",
+								Quantity: 1,
+								Price:    1.0,
+								Sku:      "test-sku",
+							},
+						},
 					},
 				},
 			},
@@ -192,28 +273,34 @@ func TestProcessOrder(t *testing.T) {
 				},
 			},
 			meliCredentials: defaultMeliCredentials,
-			orderAnnouncementsClones: [][]common.MeliAnnouncement{
+			rootCredentials: &(*defaultMeliCredentials)[0],
+			orderAnnouncementsClones: [][]announcement.Announcements{
 				{
 					{
-						ID:       "1",
-						Title:    "test-title1",
-						Quantity: 1,
-						Price:    1.0,
-						Sku:      "test-sku",
-					},
-					{
-						ID:       "2",
-						Title:    "test-title2",
-						Quantity: 1,
-						Price:    1.0,
-						Sku:      "test-sku",
-						Variations: []struct {
-							ID                int
-							AvailableQuantity int
-						}{
+						AccountID: accountId,
+						Announcements: &[]common.MeliAnnouncement{
 							{
-								ID:                222,
-								AvailableQuantity: 1,
+								ID:       "1",
+								Title:    "test-title1",
+								Quantity: 1,
+								Price:    1.0,
+								Sku:      "test-sku",
+							},
+							{
+								ID:       "2",
+								Title:    "test-title2",
+								Quantity: 1,
+								Price:    1.0,
+								Sku:      "test-sku",
+								Variations: []struct {
+									ID                int
+									AvailableQuantity int
+								}{
+									{
+										ID:                222,
+										AvailableQuantity: 1,
+									},
+								},
 							},
 						},
 					},
@@ -252,30 +339,36 @@ func TestProcessOrder(t *testing.T) {
 				},
 			},
 			meliCredentials: defaultMeliCredentials,
-			orderAnnouncementsClones: [][]common.MeliAnnouncement{
+			rootCredentials: &(*defaultMeliCredentials)[0],
+			orderAnnouncementsClones: [][]announcement.Announcements{
 				{
 					{
-						ID:       "1",
-						Title:    "test-title1",
-						Quantity: 1,
-						Price:    1.0,
-						Sku:      "test-sku",
-						Variations: []struct {
-							ID                int
-							AvailableQuantity int
-						}{
+						AccountID: accountId,
+						Announcements: &[]common.MeliAnnouncement{
 							{
-								ID:                111,
-								AvailableQuantity: 1,
+								ID:       "1",
+								Title:    "test-title1",
+								Quantity: 1,
+								Price:    1.0,
+								Sku:      "test-sku",
+								Variations: []struct {
+									ID                int
+									AvailableQuantity int
+								}{
+									{
+										ID:                111,
+										AvailableQuantity: 1,
+									},
+								},
+							},
+							{
+								ID:       "2",
+								Title:    "test-title2",
+								Quantity: 1,
+								Price:    1.0,
+								Sku:      "test-sku",
 							},
 						},
-					},
-					{
-						ID:       "2",
-						Title:    "test-title2",
-						Quantity: 1,
-						Price:    1.0,
-						Sku:      "test-sku",
 					},
 				},
 			},
@@ -318,37 +411,48 @@ func TestProcessOrder(t *testing.T) {
 				},
 			},
 			meliCredentials: defaultMeliCredentials,
-			orderAnnouncementsClones: [][]common.MeliAnnouncement{
+			rootCredentials: &(*defaultMeliCredentials)[0],
+			orderAnnouncementsClones: [][]announcement.Announcements{
 				{
 					{
-						ID:       "1",
-						Title:    "test-title",
-						Quantity: 1,
-						Price:    1.0,
-						Sku:      "test-sku",
-					},
-					{
-						ID:       "2",
-						Title:    "test-title2",
-						Quantity: 1,
-						Price:    1.0,
-						Sku:      "test-sku",
+						AccountID: accountId,
+						Announcements: &[]common.MeliAnnouncement{
+							{
+								ID:       "1",
+								Title:    "test-title",
+								Quantity: 1,
+								Price:    1.0,
+								Sku:      "test-sku",
+							},
+							{
+								ID:       "2",
+								Title:    "test-title2",
+								Quantity: 1,
+								Price:    1.0,
+								Sku:      "test-sku",
+							},
+						},
 					},
 				},
 				{
 					{
-						ID:       "10",
-						Title:    "test-title-another-item",
-						Quantity: 1,
-						Price:    1.0,
-						Sku:      "test-sku-another-item",
-					},
-					{
-						ID:       "11",
-						Title:    "test-title-another-item2",
-						Quantity: 1,
-						Price:    1.0,
-						Sku:      "test-sku-another-item",
+						AccountID: accountId,
+						Announcements: &[]common.MeliAnnouncement{
+							{
+								ID:       "10",
+								Title:    "test-title-another-item",
+								Quantity: 1,
+								Price:    1.0,
+								Sku:      "test-sku-another-item",
+							},
+							{
+								ID:       "11",
+								Title:    "test-title-another-item2",
+								Quantity: 1,
+								Price:    1.0,
+								Sku:      "test-sku-another-item",
+							},
+						},
 					},
 				},
 			},
@@ -395,22 +499,28 @@ func TestProcessOrder(t *testing.T) {
 				},
 			},
 			meliCredentials: defaultMeliCredentials,
-			orderAnnouncementsClones: [][]common.MeliAnnouncement{
+			rootCredentials: &(*defaultMeliCredentials)[0],
+			orderAnnouncementsClones: [][]announcement.Announcements{
 				{},
 				{
 					{
-						ID:       "10",
-						Title:    "test-title-another-item",
-						Quantity: 1,
-						Price:    1.0,
-						Sku:      "test-sku-another-item",
-					},
-					{
-						ID:       "11",
-						Title:    "test-title-another-item2",
-						Quantity: 1,
-						Price:    1.0,
-						Sku:      "test-sku-another-item",
+						AccountID: accountId,
+						Announcements: &[]common.MeliAnnouncement{
+							{
+								ID:       "11",
+								Title:    "test-title-another-item2",
+								Quantity: 1,
+								Price:    1.0,
+								Sku:      "test-sku-another-item",
+							},
+							{
+								ID:       "10",
+								Title:    "test-title-another-item",
+								Quantity: 1,
+								Price:    1.0,
+								Sku:      "test-sku-another-item",
+							},
+						},
 					},
 				},
 			},
@@ -435,6 +545,9 @@ func TestProcessOrder(t *testing.T) {
 		},
 	}
 
+	// -------------------------------------------------------
+	// ------------------- Test Execution --------------------
+	// -------------------------------------------------------
 	for _, tt := range newOrderScenarios {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
@@ -446,28 +559,58 @@ func TestProcessOrder(t *testing.T) {
 			mocks.mockOrderCache.EXPECT().GetOrder(tt.orderMessage.OrderId).Return(nil, nil)
 			mocks.mockOrderRepo.EXPECT().GetOrder(tt.orderMessage.OrderId).Return(nil, nil)
 			mocks.mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(tt.orderMessage.Store).Return(tt.meliCredentials, nil)
-			mocks.mockMercadoLivre.EXPECT().FetchOrder(tt.orderMessage.OrderId, tt.meliCredentials.MeliAccessToken).Return(tt.meliOrder, nil)
-			order.RemoveDuplicateItensTest(&tt.meliOrder.Items)
+			mocks.mockMercadoLivre.EXPECT().FetchOrder(tt.orderMessage.OrderId, tt.rootCredentials.AccessToken).Return(tt.meliOrder, nil)
+			order.RemoveDuplicateItemsTest(&tt.meliOrder.Items)
+
 			for i, item := range tt.meliOrder.Items {
 				if item.Sku == "" {
 					mocks.mockLogger.EXPECT().Warn("The product doesn't have sku", zap.String("order_id", tt.orderMessage.OrderId), zap.String("announcement_id", item.ID))
 					continue
 				}
-				mocks.mockAnnUseCase.EXPECT().RetrieveAnnouncements(item.Sku, *tt.meliCredentials).Return(&tt.orderAnnouncementsClones[i], nil)
+
+				mocks.mockAnnUseCase.EXPECT().RetrieveAnnouncementsFromAllAccounts(item.Sku, tt.meliCredentials).Return(&tt.orderAnnouncementsClones[i], nil)
 			}
-			for _, anns := range tt.orderAnnouncementsClones {
-				for i := 1; i < len(anns); i++ {
-					if anns[i].Variations != nil {
-						for _, variation := range anns[i].Variations {
-							mocks.mockAnnUseCase.EXPECT().UpdateQuantity(
-								anns[i].ID, variation.AvailableQuantity-anns[0].Quantity, *tt.meliCredentials, variation.ID).Return(nil)
+
+			orderItemsIds := make([]string, len(tt.meliOrder.Items))
+
+			for i, item := range tt.meliOrder.Items {
+				orderItemsIds[i] = item.ID
+			}
+
+			for _, itmClns := range tt.orderAnnouncementsClones {
+				for _, acc := range itmClns {
+					var currentCredentials *store.Credentials
+					for i := 0; i < len(*tt.meliCredentials); i++ {
+						if acc.AccountID == (*tt.meliCredentials)[i].ID {
+							currentCredentials = &(*tt.meliCredentials)[i]
 						}
-						continue
 					}
-					mocks.mockAnnUseCase.EXPECT().UpdateQuantity(
-						anns[i].ID, anns[i].Quantity-anns[0].Quantity, *tt.meliCredentials).Return(nil)
+
+					for _, ann := range *acc.Announcements {
+						if utils.Contains(&orderItemsIds, ann.ID) {
+							continue
+						}
+
+						var soldQuantity int
+						for _, item := range tt.meliOrder.Items {
+							if item.Sku == ann.Sku {
+								soldQuantity = 1
+							}
+						}
+
+						if ann.Variations != nil {
+							for _, variation := range ann.Variations {
+								mocks.mockAnnUseCase.EXPECT().UpdateQuantity(
+									ann.ID, variation.AvailableQuantity-soldQuantity, *currentCredentials, variation.ID).Return(nil)
+							}
+							continue
+						}
+						mocks.mockAnnUseCase.EXPECT().UpdateQuantity(
+							ann.ID, ann.Quantity-soldQuantity, *currentCredentials).Return(nil)
+					}
 				}
 			}
+
 			mocks.mockOrderRepo.EXPECT().RegisterOrder(gomock.All(tt.OrderMatcher)).Return(nil)
 			mocks.mockOrderCache.EXPECT().SetOrder(gomock.All(tt.OrderMatcher)).Return(nil)
 			mocks.mockOrderQueue.EXPECT().DeleteOrderNotification(tt.orderMessage.ReceiptHandle).Return(nil)
@@ -479,6 +622,9 @@ func TestProcessOrder(t *testing.T) {
 		})
 	}
 
+	// -------------------------------------------------------
+	// ---------- Scenarios -> Order already exists ----------
+	// -------------------------------------------------------
 	orderAlreadyExistsScenarios := []struct {
 		name         string
 		orderMessage order.OrderMessage
@@ -518,9 +664,9 @@ func TestProcessOrder(t *testing.T) {
 						zap.Error(errors.New("error getting order from cache")),
 					),
 					m.mockOrderRepo.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
-					m.mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(gomock.Any()).Return(&store.Credentials{}, nil),
+					m.mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(gomock.Any()).Return(defaultMeliCredentials, nil),
 					m.mockMercadoLivre.EXPECT().FetchOrder(gomock.Any(), gomock.Any()).Return(&common.MeliOrder{}, nil),
-					m.mockAnnUseCase.EXPECT().RetrieveAnnouncements(gomock.Any(), gomock.Any()).Return(&[]common.MeliAnnouncement{}, nil).AnyTimes(),
+					m.mockAnnUseCase.EXPECT().RetrieveAnnouncementsFromAllAccounts(gomock.Any(), gomock.Any()).Return(&[]announcement.Announcements{}, nil).AnyTimes(),
 					m.mockAnnUseCase.EXPECT().UpdateQuantity(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes(),
 					m.mockOrderRepo.EXPECT().RegisterOrder(gomock.Any()).Return(nil),
 					m.mockOrderCache.EXPECT().SetOrder(gomock.Any()).Return(nil),
@@ -547,6 +693,9 @@ func TestProcessOrder(t *testing.T) {
 		},
 	}
 
+	// -------------------------------------------------------
+	// ------------------- Test Execution --------------------
+	// -------------------------------------------------------
 	for _, tt := range orderAlreadyExistsScenarios {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
@@ -568,6 +717,9 @@ func TestProcessOrder(t *testing.T) {
 		})
 	}
 
+	// -------------------------------------------------------
+	// --------- Scenarios -> Error retrieving data ----------
+	// -------------------------------------------------------
 	errRetrievingDataFromMeli := []struct {
 		name         string
 		orderMessage order.OrderMessage
@@ -585,11 +737,28 @@ func TestProcessOrder(t *testing.T) {
 					m.mockLogger.EXPECT().Error(
 						"Error in retrieving Meli credentials during order processing",
 						errors.New("error retrieving meli credentials"),
-						zap.String("order_id", defaultOrderMessage.OrderId),
+						zap.String("store_id", defaultOrderMessage.Store),
 					),
 				)
 			},
-			errMessage: "error to process order - get credentials",
+			errMessage: "credentials not found",
+		},
+		{
+			name:         "error converting credentials to map",
+			orderMessage: defaultOrderMessage,
+			mockCall: func(m *Mocks) {
+				gomock.InOrder(
+					m.mockOrderCache.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
+					m.mockOrderRepo.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
+					m.mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(gomock.Any()).Return(nilCredentials, nil),
+					m.mockLogger.EXPECT().Error(
+						"Error in converting credentials to map",
+						gomock.Any(),
+						zap.String("store_id", defaultOrderMessage.Store),
+					),
+				)
+			},
+			errMessage: "credentials not found",
 		},
 		{
 			name:         "error fetching order from meli",
@@ -607,7 +776,7 @@ func TestProcessOrder(t *testing.T) {
 					),
 				)
 			},
-			errMessage: "error getting order from meli",
+			errMessage: "error processing order",
 		},
 		{
 			name:         "error retrieving announcements and the error type doesn't match any of the expected",
@@ -618,17 +787,16 @@ func TestProcessOrder(t *testing.T) {
 					m.mockOrderCache.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
 					m.mockOrderRepo.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
 					m.mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(defaultOrderMessage.Store).Return(defaultMeliCredentials, nil),
-					m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, defaultMeliCredentials.MeliAccessToken).Return(defaultMeliOrder, nil),
-					m.mockAnnUseCase.EXPECT().RetrieveAnnouncements(defaultMeliOrder.Items[0].Sku, *defaultMeliCredentials).Return(nil, annErr),
+					m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, (*defaultMeliCredentials)[0].AccessToken).Return(defaultMeliOrder, nil),
+					m.mockAnnUseCase.EXPECT().RetrieveAnnouncementsFromAllAccounts(defaultMeliOrder.Items[0].Sku, defaultMeliCredentials).Return(nil, annErr),
 					m.mockLogger.EXPECT().Error(
 						"Error in retrieving the order product clones",
 						annErr,
-						zap.String("order_id", defaultOrderMessage.OrderId),
 						zap.String("sku", defaultMeliOrder.Items[0].Sku),
 					),
 				)
 			},
-			errMessage: "error retrieving announcements",
+			errMessage: "error processing order",
 		},
 		{
 			name:         "error retrieving announcements and unable to retry",
@@ -643,23 +811,21 @@ func TestProcessOrder(t *testing.T) {
 					m.mockOrderCache.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
 					m.mockOrderRepo.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
 					m.mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(defaultOrderMessage.Store).Return(defaultMeliCredentials, nil),
-					m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, defaultMeliCredentials.MeliAccessToken).Return(defaultMeliOrder, nil),
-					m.mockAnnUseCase.EXPECT().RetrieveAnnouncements(defaultMeliOrder.Items[0].Sku, *defaultMeliCredentials).Return(nil, annErr),
+					m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, (*defaultMeliCredentials)[0].AccessToken).Return(defaultMeliOrder, nil),
+					m.mockAnnUseCase.EXPECT().RetrieveAnnouncementsFromAllAccounts(defaultMeliOrder.Items[0].Sku, defaultMeliCredentials).Return(nil, annErr),
 					m.mockLogger.EXPECT().Warn(
 						"Fail in retrieving the order product clones",
 						zap.Error(annErr),
-						zap.String("order_id", defaultOrderMessage.OrderId),
 						zap.String("sku", defaultMeliOrder.Items[0].Sku),
 					),
 					m.mockLogger.EXPECT().Error(
 						"Error in retrieving the order product clones",
 						annErr,
-						zap.String("order_id", defaultOrderMessage.OrderId),
 						zap.String("sku", defaultMeliOrder.Items[0].Sku),
 					),
 				)
 			},
-			errMessage: fmt.Sprintf("Message: error retrieving announcements - Announcement SKU: %s", defaultMeliOrder.Items[0].Sku),
+			errMessage: fmt.Sprintf("error processing order"),
 		},
 		{
 			name:         "error retrieving announcements and able to retry - success on retry",
@@ -675,25 +841,23 @@ func TestProcessOrder(t *testing.T) {
 					m.mockOrderCache.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
 					m.mockOrderRepo.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
 					m.mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(defaultOrderMessage.Store).Return(defaultMeliCredentials, nil),
-					m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, defaultMeliCredentials.MeliAccessToken).Return(defaultMeliOrder, nil),
-					m.mockAnnUseCase.EXPECT().RetrieveAnnouncements(defaultMeliOrder.Items[0].Sku, *defaultMeliCredentials).Return(nil, annErr),
+					m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, (*defaultMeliCredentials)[0].AccessToken).Return(defaultMeliOrder, nil),
+					m.mockAnnUseCase.EXPECT().RetrieveAnnouncementsFromAllAccounts(defaultMeliOrder.Items[0].Sku, defaultMeliCredentials).Return(nil, annErr),
 					m.mockLogger.EXPECT().Warn(
 						"Fail in retrieving the order product clones",
 						zap.Error(annErr),
-						zap.String("order_id", defaultOrderMessage.OrderId),
 						zap.String("sku", defaultMeliOrder.Items[0].Sku),
 					),
 					m.mockLogger.EXPECT().Info(
 						"Retrying to retrieve order products clones...",
-						zap.String("order_id", defaultOrderMessage.OrderId),
 						zap.String("sku", defaultMeliOrder.Items[0].Sku),
 					),
-					m.mockAnnUseCase.EXPECT().RetrieveAnnouncements(defaultMeliOrder.Items[0].Sku, *defaultMeliCredentials).Return(&defaultMeliAnnouncementsClones[0], nil),
+					m.mockAnnUseCase.EXPECT().RetrieveAnnouncementsFromAllAccounts(defaultMeliOrder.Items[0].Sku, defaultMeliCredentials).Return(&defaultMeliAnnouncementsClones, nil),
 
 					m.mockAnnUseCase.EXPECT().UpdateQuantity(
-						defaultMeliAnnouncementsClones[0][1].ID,
-						defaultMeliAnnouncementsClones[0][1].Quantity-defaultMeliOrder.Items[0].Quantity,
-						*defaultMeliCredentials,
+						(*defaultMeliAnnouncementsClones[0].Announcements)[1].ID,
+						(*defaultMeliAnnouncementsClones[0].Announcements)[1].Quantity-defaultMeliOrder.Items[0].Quantity,
+						(*defaultMeliCredentials)[0],
 					).Return(nil),
 					m.mockOrderRepo.EXPECT().RegisterOrder(gomock.Any()).Return(nil),
 					m.mockOrderCache.EXPECT().SetOrder(gomock.Any()).Return(nil),
@@ -715,31 +879,32 @@ func TestProcessOrder(t *testing.T) {
 					m.mockOrderCache.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
 					m.mockOrderRepo.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
 					m.mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(defaultOrderMessage.Store).Return(defaultMeliCredentials, nil),
-					m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, defaultMeliCredentials.MeliAccessToken).Return(defaultMeliOrder, nil),
-					m.mockAnnUseCase.EXPECT().RetrieveAnnouncements(defaultMeliOrder.Items[0].Sku, *defaultMeliCredentials).Return(nil, annErr),
+					m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, (*defaultMeliCredentials)[0].AccessToken).Return(defaultMeliOrder, nil),
+					m.mockAnnUseCase.EXPECT().RetrieveAnnouncementsFromAllAccounts(defaultMeliOrder.Items[0].Sku, defaultMeliCredentials).Return(nil, annErr),
 					m.mockLogger.EXPECT().Warn(
 						"Fail in retrieving the order product clones",
 						zap.Error(annErr),
-						zap.String("order_id", defaultOrderMessage.OrderId),
 						zap.String("sku", defaultMeliOrder.Items[0].Sku),
 					),
 					m.mockLogger.EXPECT().Info(
 						"Retrying to retrieve order products clones...",
-						zap.String("order_id", defaultOrderMessage.OrderId),
 						zap.String("sku", defaultMeliOrder.Items[0].Sku),
 					),
-					m.mockAnnUseCase.EXPECT().RetrieveAnnouncements(defaultMeliOrder.Items[0].Sku, *defaultMeliCredentials).Return(nil, annErr),
+					m.mockAnnUseCase.EXPECT().RetrieveAnnouncementsFromAllAccounts(defaultMeliOrder.Items[0].Sku, defaultMeliCredentials).Return(nil, annErr),
 					m.mockLogger.EXPECT().Error(
 						"Error in retrieving the order product clones",
 						annErr,
-						zap.String("order_id", defaultOrderMessage.OrderId),
+						zap.String("sku", defaultMeliOrder.Items[0].Sku),
 					),
 				)
 			},
-			errMessage: fmt.Sprintf("Message: error retrieving announcements - Announcement SKU: %s", defaultMeliOrder.Items[0].Sku),
+			errMessage: fmt.Sprintf("error processing order"),
 		},
 	}
 
+	// -------------------------------------------------------
+	// ------------------- Test Execution --------------------
+	// -------------------------------------------------------
 	for _, tt := range errRetrievingDataFromMeli {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
@@ -761,6 +926,10 @@ func TestProcessOrder(t *testing.T) {
 		})
 	}
 
+	// -------------------------------------------------------
+	// --------- Scenarios -> Error updating data ------------
+	// -------------------------------------------------------
+	// TODO: Fix this test
 	errUpdatingAnnouncements := []struct {
 		name         string
 		orderMessage order.OrderMessage
@@ -771,30 +940,40 @@ func TestProcessOrder(t *testing.T) {
 			name:         "error updating announcements",
 			orderMessage: defaultOrderMessage,
 			mockCall: func(m *Mocks) {
-				anns := []common.MeliAnnouncement{
+				anns := []announcement.Announcements{
 					{
-						ID:       "1",
-						Title:    "test-title",
-						Quantity: 1,
-						Price:    1.0,
-						Sku:      "test-sku",
-					},
-					{
-						ID:       "2",
-						Title:    "test-title2",
-						Quantity: 1,
-						Price:    1.0,
-						Sku:      "test-sku",
+						AccountID: accountId,
+						Announcements: &[]common.MeliAnnouncement{
+							{
+								ID:       "1",
+								Title:    "test-title",
+								Quantity: 1,
+								Price:    1.0,
+								Sku:      "test-sku",
+							},
+							{
+								ID:       "2",
+								Title:    "test-title2",
+								Quantity: 1,
+								Price:    1.0,
+								Sku:      "test-sku",
+							},
+						},
 					},
 				}
 				odrErro := &order.OrderError{
-					Message: "Couldn't change the announcements",
-					AnnouncementsError: []common.MeliAnnouncement{
+					Message: "Error updating announcements",
+					AnnouncementsError: []announcement.Announcements{
 						{
-							ID:       anns[1].ID,
-							Title:    anns[1].Title,
-							Sku:      anns[1].Sku,
-							Quantity: anns[1].Quantity - defaultMeliOrder.Items[0].Quantity,
+							AccountID: accountId,
+							Announcements: &[]common.MeliAnnouncement{
+								{
+									ID:       (*anns[0].Announcements)[1].ID,
+									Title:    (*anns[0].Announcements)[1].Title,
+									Sku:      (*anns[0].Announcements)[1].Sku,
+									Quantity: (*anns[0].Announcements)[1].Quantity - defaultMeliOrder.Items[0].Quantity,
+								},
+							},
 						},
 					},
 				}
@@ -803,27 +982,26 @@ func TestProcessOrder(t *testing.T) {
 					m.mockOrderCache.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
 					m.mockOrderRepo.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
 					m.mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(defaultOrderMessage.Store).Return(defaultMeliCredentials, nil),
-					m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, defaultMeliCredentials.MeliAccessToken).Return(defaultMeliOrder, nil),
-					m.mockAnnUseCase.EXPECT().RetrieveAnnouncements(defaultMeliOrder.Items[0].Sku, *defaultMeliCredentials).Return(&anns, nil),
+					m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, (*defaultMeliCredentials)[0].AccessToken).Return(defaultMeliOrder, nil),
+					m.mockAnnUseCase.EXPECT().RetrieveAnnouncementsFromAllAccounts(defaultMeliOrder.Items[0].Sku, defaultMeliCredentials).Return(&anns, nil),
 					m.mockAnnUseCase.EXPECT().UpdateQuantity(
-						anns[1].ID,
-						anns[1].Quantity-defaultMeliOrder.Items[0].Quantity,
-						*defaultMeliCredentials,
+						(*anns[0].Announcements)[1].ID,
+						(*anns[0].Announcements)[1].Quantity-defaultMeliOrder.Items[0].Quantity,
+						(*defaultMeliCredentials)[0],
 					).Return(errors.New("error updating announcements")),
 					m.mockLogger.EXPECT().Error(
-						"Couldn't change the announcements",
+						odrErro.Message,
 						odrErro,
-						zap.Any(
-							"Announcements that were not possible to change the quantity",
-							odrErro.AnnouncementsError,
-						),
 					),
 				)
 			},
-			errMessage: "Couldn't change the announcements",
+			errMessage: "error syncing quantities",
 		},
 	}
 
+	// -------------------------------------------------------
+	// ------------------- Test Execution --------------------
+	// -------------------------------------------------------
 	for _, tt := range errUpdatingAnnouncements {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
@@ -845,6 +1023,9 @@ func TestProcessOrder(t *testing.T) {
 		})
 	}
 
+	// -------------------------------------------------------
+	// --------- Scenarios -> Error registering order --------
+	// -------------------------------------------------------
 	errRegisteringOrder := []struct {
 		name         string
 		orderMessage order.OrderMessage
@@ -859,8 +1040,8 @@ func TestProcessOrder(t *testing.T) {
 					m.mockOrderCache.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
 					m.mockOrderRepo.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
 					m.mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(defaultOrderMessage.Store).Return(defaultMeliCredentials, nil),
-					m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, defaultMeliCredentials.MeliAccessToken).Return(defaultMeliOrder, nil),
-					m.mockAnnUseCase.EXPECT().RetrieveAnnouncements(defaultMeliOrder.Items[0].Sku, *defaultMeliCredentials).Return(&[]common.MeliAnnouncement{}, nil),
+					m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, (*defaultMeliCredentials)[0].AccessToken).Return(defaultMeliOrder, nil),
+					m.mockAnnUseCase.EXPECT().RetrieveAnnouncementsFromAllAccounts(defaultMeliOrder.Items[0].Sku, defaultMeliCredentials).Return(&[]announcement.Announcements{}, nil),
 					m.mockAnnUseCase.EXPECT().UpdateQuantity(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes(),
 					m.mockOrderRepo.EXPECT().RegisterOrder(gomock.Any()).Return(errors.New("error registering order")),
 					m.mockLogger.EXPECT().Error(
@@ -880,8 +1061,8 @@ func TestProcessOrder(t *testing.T) {
 					m.mockOrderCache.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
 					m.mockOrderRepo.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil),
 					m.mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(defaultOrderMessage.Store).Return(defaultMeliCredentials, nil),
-					m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, defaultMeliCredentials.MeliAccessToken).Return(defaultMeliOrder, nil),
-					m.mockAnnUseCase.EXPECT().RetrieveAnnouncements(defaultMeliOrder.Items[0].Sku, *defaultMeliCredentials).Return(&[]common.MeliAnnouncement{}, nil),
+					m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, (*defaultMeliCredentials)[0].AccessToken).Return(defaultMeliOrder, nil),
+					m.mockAnnUseCase.EXPECT().RetrieveAnnouncementsFromAllAccounts(defaultMeliOrder.Items[0].Sku, defaultMeliCredentials).Return(&[]announcement.Announcements{}, nil),
 					m.mockAnnUseCase.EXPECT().UpdateQuantity(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes(),
 					m.mockOrderRepo.EXPECT().RegisterOrder(gomock.Any()).Return(nil),
 					m.mockOrderCache.EXPECT().SetOrder(gomock.Any()).Return(errors.New("error setting order on cache")),
@@ -895,6 +1076,9 @@ func TestProcessOrder(t *testing.T) {
 		},
 	}
 
+	// -------------------------------------------------------
+	// ------------------- Test Execution --------------------
+	// -------------------------------------------------------
 	for _, tt := range errRegisteringOrder {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
@@ -917,96 +1101,146 @@ func TestProcessOrder(t *testing.T) {
 	}
 }
 
-func TestSupportingFuncs(t *testing.T) {
-	t.Run("test remove duplicated items", func(t *testing.T) {
-		items := &[]common.OrderItem{
+// TestHelperFunctions tests utility functions used in order processing.
+// Current tests:
+// - RemoveDuplicateItems: Verifies correct handling of:
+//   - Duplicate items with same SKU
+//   - Items with different SKUs
+//   - Items with empty SKUs
+//   - Mix of items with and without SKUs
+func TestHelperFunctions(t *testing.T) {
+	t.Run("test remove duplicate items", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			input    []common.OrderItem
+			expected []common.OrderItem
+		}{
 			{
-				Title:    "test-title",
-				Quantity: 1,
-				Sku:      "test-sku",
+				name: "duplicate items with same SKU",
+				input: []common.OrderItem{
+					{
+						Title:    "test-title",
+						Quantity: 1,
+						Sku:      "test-sku",
+					},
+					{
+						Title:    "test-title",
+						Quantity: 2,
+						Sku:      "test-sku",
+					},
+				},
+				expected: []common.OrderItem{
+					{
+						Title:    "test-title",
+						Quantity: 3,
+						Sku:      "test-sku",
+					},
+				},
 			},
 			{
-				Title:    "test-title",
-				Quantity: 2,
-				Sku:      "test-sku",
+				name: "items with different SKUs",
+				input: []common.OrderItem{
+					{
+						Title:    "test-title",
+						Quantity: 1,
+						Sku:      "test-sku-1",
+					},
+					{
+						Title:    "test-title",
+						Quantity: 2,
+						Sku:      "test-sku-2",
+					},
+				},
+				expected: []common.OrderItem{
+					{
+						Title:    "test-title",
+						Quantity: 1,
+						Sku:      "test-sku-1",
+					},
+					{
+						Title:    "test-title",
+						Quantity: 2,
+						Sku:      "test-sku-2",
+					},
+				},
 			},
 			{
-				Title:    "test-title",
-				Quantity: 1,
-				Sku:      "test-sku-other",
+				name: "items with empty SKUs",
+				input: []common.OrderItem{
+					{
+						Title:    "test-title",
+						Quantity: 1,
+						Sku:      "",
+					},
+					{
+						Title:    "test-title",
+						Quantity: 2,
+						Sku:      "",
+					},
+				},
+				expected: []common.OrderItem{
+					{
+						Title:    "test-title",
+						Quantity: 1,
+						Sku:      "",
+					},
+					{
+						Title:    "test-title",
+						Quantity: 2,
+						Sku:      "",
+					},
+				},
 			},
-		}
-		expected := &[]common.OrderItem{
 			{
-				Title:    "test-title",
-				Quantity: 3,
-				Sku:      "test-sku",
-			},
-			{
-				Title:    "test-title",
-				Quantity: 1,
-				Sku:      "test-sku-other",
+				name: "mix of items with and without SKUs",
+				input: []common.OrderItem{
+					{
+						Title:    "test-title",
+						Quantity: 1,
+						Sku:      "test-sku",
+					},
+					{
+						Title:    "test-title",
+						Quantity: 2,
+						Sku:      "test-sku",
+					},
+					{
+						Title:    "test-title",
+						Quantity: 3,
+						Sku:      "",
+					},
+				},
+				expected: []common.OrderItem{
+					{
+						Title:    "test-title",
+						Quantity: 3,
+						Sku:      "test-sku",
+					},
+					{
+						Title:    "test-title",
+						Quantity: 3,
+						Sku:      "",
+					},
+				},
 			},
 		}
 
-		order.RemoveDuplicateItensTest(items)
-
-		if len(*items) != 2 {
-			t.Errorf("Error removing duplicated items: %v", items)
-		}
-		if !cmp.Equal(items, expected) {
-			t.Errorf("Error removing duplicated items, diff:\n%v", cmp.Diff(items, expected))
-		}
-	})
-
-	t.Run("test remove duplicated items - items don't have an SKU", func(t *testing.T) {
-		items := &[]common.OrderItem{
-			{
-				Title:    "test-title",
-				Quantity: 1,
-				Sku:      "",
-			},
-			{
-				Title:    "test-title-3",
-				Quantity: 3,
-				Sku:      "",
-			},
-			{
-				Title:    "test-title-2",
-				Quantity: 1,
-				Sku:      "test-sku",
-			},
-		}
-		expected := &[]common.OrderItem{
-			{
-				Title:    "test-title",
-				Quantity: 1,
-				Sku:      "",
-			},
-			{
-				Title:    "test-title-3",
-				Quantity: 3,
-				Sku:      "",
-			},
-			{
-				Title:    "test-title-2",
-				Quantity: 1,
-				Sku:      "test-sku",
-			},
-		}
-
-		order.RemoveDuplicateItensTest(items)
-
-		if len(*items) != 3 {
-			t.Errorf("Error removing duplicated items: %v", items)
-		}
-		if !cmp.Equal(items, expected) {
-			t.Errorf("Error removing duplicated items, diff:\n%v", cmp.Diff(items, expected))
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				items := tt.input
+				order.RemoveDuplicateItemsTest(&items)
+				if !cmp.Equal(items, tt.expected) {
+					t.Errorf("RemoveDuplicateItems() = %v, want %v", items, tt.expected)
+				}
+			})
 		}
 	})
 }
 
 // ============================ Custom matchers ============================
+
+// OrderMatcher is a custom gomock matcher for Order entities.
+// It compares orders while ignoring specific fields (ID, AccountID, MarketplaceID, DateCreated).
 type OrderMatcher struct {
 	expected *entity.Order
 }
@@ -1017,7 +1251,7 @@ func (o *OrderMatcher) Matches(x interface{}) bool {
 		return false
 	}
 
-	return cmp.Equal(order, o.expected, cmpopts.IgnoreFields(entity.Order{}, "ID", "StoreID", "DateCreated"), cmpopts.IgnoreFields(entity.OrderItem{}, "ID"))
+	return cmp.Equal(order, o.expected, cmpopts.IgnoreFields(entity.Order{}, "ID", "AccountID", "MarketplaceID", "DateCreated"), cmpopts.IgnoreFields(entity.OrderItem{}, "ID"))
 }
 
 func (o *OrderMatcher) String() string {
@@ -1025,6 +1259,9 @@ func (o *OrderMatcher) String() string {
 }
 
 // ================================== Mocks =================================
+
+// Mocks holds all mock instances used in testing.
+// Provides a centralized way to manage test dependencies.
 type Mocks struct {
 	mockOrderQueue   *mock_order.MockQueue
 	mockMercadoLivre *common_mock.MockMercadoLivre
@@ -1057,4 +1294,205 @@ func (m *Mocks) newOrderService() *order.OrderService {
 		m.mockOrderCache,
 		m.mockLogger,
 	)
+}
+
+// TestProcessOrderErrors specifically tests error scenarios in order processing.
+// Covers errors in:
+// 1. Credential retrieval
+// 2. Mercado Livre API calls
+// 3. Announcement retrieval
+// 4. Quantity updates
+// 5. Order registration
+func TestProcessOrderErrors(t *testing.T) {
+	accountId := entity.ID(uuid.New())
+	defaultOrderMessage := order.OrderMessage{
+		Store:         "1",
+		OrderId:       "20210101000000",
+		Attempts:      0,
+		ReceiptHandle: "test-receipt-handle",
+	}
+
+	defaultMeliCredentials := &[]store.Credentials{
+		{
+			ID: accountId,
+			MeliCredential: &common.MeliCredential{
+				AccessToken: "test-access-token",
+				UserID:      "1",
+			},
+		},
+	}
+
+	tests := []struct {
+		name       string
+		setupMocks func(*Mocks)
+		wantErr    bool
+		errMessage string
+	}{
+		{
+			name: "error getting credentials",
+			setupMocks: func(m *Mocks) {
+				m.mockOrderCache.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil)
+				m.mockOrderRepo.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil)
+				m.mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(defaultOrderMessage.Store).Return(nil, errors.New("credentials error"))
+				m.mockLogger.EXPECT().Error("Error in retrieving Meli credentials during order processing",
+					gomock.Any(),
+					zap.String("store_id", defaultOrderMessage.Store))
+			},
+			wantErr:    true,
+			errMessage: "credentials not found",
+		},
+		{
+			name: "error fetching order from Mercado Livre",
+			setupMocks: func(m *Mocks) {
+				m.mockOrderCache.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil)
+				m.mockOrderRepo.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil)
+				m.mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(defaultOrderMessage.Store).Return(defaultMeliCredentials, nil)
+				m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, (*defaultMeliCredentials)[0].AccessToken).Return(nil, errors.New("meli error"))
+				m.mockLogger.EXPECT().Error("Error to fetch the order",
+					gomock.Any(),
+					zap.String("order_id", defaultOrderMessage.OrderId))
+			},
+			wantErr:    true,
+			errMessage: "error processing order",
+		},
+		{
+			name: "error retrieving announcements",
+			setupMocks: func(m *Mocks) {
+				meliOrder := &common.MeliOrder{
+					ID:          defaultOrderMessage.OrderId,
+					DateCreated: "2022-10-30T16:19:20.129Z",
+					Status:      common.Paid,
+					Items: []common.OrderItem{
+						{
+							ID:       "1",
+							Title:    "test-title",
+							Sku:      "test-sku",
+							Quantity: 1,
+						},
+					},
+				}
+
+				m.mockOrderCache.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil)
+				m.mockOrderRepo.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil)
+				m.mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(defaultOrderMessage.Store).Return(defaultMeliCredentials, nil)
+				m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, (*defaultMeliCredentials)[0].AccessToken).Return(meliOrder, nil)
+				m.mockAnnUseCase.EXPECT().RetrieveAnnouncementsFromAllAccounts("test-sku", defaultMeliCredentials).Return(nil, errors.New("announcement error"))
+				m.mockLogger.EXPECT().Error("Error in retrieving the order product clones",
+					gomock.Any(),
+					zap.String("sku", "test-sku"))
+			},
+			wantErr:    true,
+			errMessage: "error processing order",
+		},
+		{
+			name: "error updating quantity",
+			setupMocks: func(m *Mocks) {
+				meliOrder := &common.MeliOrder{
+					ID:          defaultOrderMessage.OrderId,
+					DateCreated: "2022-10-30T16:19:20.129Z",
+					Status:      common.Paid,
+					Items: []common.OrderItem{
+						{
+							ID:       "1",
+							Title:    "test-title",
+							Sku:      "test-sku",
+							Quantity: 1,
+						},
+					},
+				}
+
+				announcements := &[]announcement.Announcements{
+					{
+						AccountID: accountId,
+						Announcements: &[]common.MeliAnnouncement{
+							{
+								ID:       "2",
+								Title:    "test-title",
+								Sku:      "test-sku",
+								Quantity: 2,
+							},
+						},
+					},
+				}
+
+				m.mockOrderCache.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil)
+				m.mockOrderRepo.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil)
+				m.mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(defaultOrderMessage.Store).Return(defaultMeliCredentials, nil)
+				m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, (*defaultMeliCredentials)[0].AccessToken).Return(meliOrder, nil)
+				m.mockAnnUseCase.EXPECT().RetrieveAnnouncementsFromAllAccounts("test-sku", defaultMeliCredentials).Return(announcements, nil)
+				m.mockAnnUseCase.EXPECT().UpdateQuantity("2", 1, (*defaultMeliCredentials)[0]).Return(errors.New("update error"))
+				m.mockLogger.EXPECT().Error("Error updating announcements",
+					gomock.Any(),
+				)
+			},
+			wantErr:    true,
+			errMessage: "error syncing quantities",
+		},
+		{
+			name: "error registering order",
+			setupMocks: func(m *Mocks) {
+				meliOrder := &common.MeliOrder{
+					ID:          defaultOrderMessage.OrderId,
+					DateCreated: "2022-10-30T16:19:20.129Z",
+					Status:      common.Paid,
+					Items: []common.OrderItem{
+						{
+							ID:       "1",
+							Title:    "test-title",
+							Sku:      "test-sku",
+							Quantity: 1,
+						},
+					},
+				}
+
+				announcements := &[]announcement.Announcements{
+					{
+						AccountID: accountId,
+						Announcements: &[]common.MeliAnnouncement{
+							{
+								ID:       "2",
+								Title:    "test-title",
+								Sku:      "test-sku",
+								Quantity: 2,
+							},
+						},
+					},
+				}
+
+				m.mockOrderCache.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil)
+				m.mockOrderRepo.EXPECT().GetOrder(defaultOrderMessage.OrderId).Return(nil, nil)
+				m.mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(defaultOrderMessage.Store).Return(defaultMeliCredentials, nil)
+				m.mockMercadoLivre.EXPECT().FetchOrder(defaultOrderMessage.OrderId, (*defaultMeliCredentials)[0].AccessToken).Return(meliOrder, nil)
+				m.mockAnnUseCase.EXPECT().RetrieveAnnouncementsFromAllAccounts("test-sku", defaultMeliCredentials).Return(announcements, nil)
+				m.mockAnnUseCase.EXPECT().UpdateQuantity("2", 1, (*defaultMeliCredentials)[0]).Return(nil)
+				m.mockOrderRepo.EXPECT().RegisterOrder(gomock.Any()).Return(errors.New("register error"))
+				m.mockLogger.EXPECT().Error("Fail to store the order",
+					gomock.Any(),
+					zap.String("order_id", defaultOrderMessage.OrderId))
+			},
+			wantErr:    true,
+			errMessage: "couldn't store order",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mocks := newMocks(ctrl)
+			orderService := mocks.newOrderService()
+
+			tt.setupMocks(mocks)
+
+			err := orderService.ProcessOrder(defaultOrderMessage)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ProcessOrder() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && err.Error() != tt.errMessage {
+				t.Errorf("ProcessOrder() error = %v, want %v", err, tt.errMessage)
+			}
+		})
+	}
 }
