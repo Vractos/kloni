@@ -34,6 +34,7 @@ type SyncContext struct {
 	Item                common.OrderItem
 	Credentials         *store.Credentials
 	AllCredentials      *[]store.Credentials
+	CredentialsHashMap  map[interface{}]store.Credentials
 	ProcessedItems      map[string]bool
 	ProcessedVariations map[string][]int
 }
@@ -118,14 +119,15 @@ func (o *OrderService) ProcessWebhook(input OrderWebhookDtoInput) error {
 // Returns:
 //   - error: Various error types depending on the failure point, nil on success
 func (o *OrderService) ProcessOrder(order OrderMessage) error {
-	if precessed, err := o.validateOrder(order); err != nil {
+	if precessed, err := o.orderExists(order); err != nil {
 		return err
 	} else if precessed {
 		return nil
 	}
 
-	credentials, allCredentials, err := o.getStoreCredentials(order.Store)
+	credentials, allCredentials, credMap, err := o.getStoreCredentials(order.Store)
 	if err != nil {
+		o.logger.Error("Error in retrieving store credentials", err, zap.String("store_id", order.Store))
 		return err
 	}
 
@@ -162,6 +164,7 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 			Item:                item,
 			Credentials:         credentials,
 			AllCredentials:      allCredentials,
+			CredentialsHashMap:  credMap,
 			ProcessedItems:      processedItems,
 			ProcessedVariations: processedVariations,
 		}
@@ -206,18 +209,16 @@ func (o *OrderService) ProcessOrder(order OrderMessage) error {
 	return nil
 }
 
-// validateOrder checks if an order is new and valid by checking the cache and repository.
-// It prevents duplicate processing of the same order.
-// If the order is already stored in the cache or repository, it deletes the order notification
-// and returns true to indicate that the order is already processed.
-// If the order is not found, it returns nil to indicate that the order is valid.
+// orderExists verifies if an order has already been processed by checking both cache and repository storage.
+// Returns true and deletes the notification if the order exists, false if it's a new order.
+// This prevents duplicate order processing and ensures data consistency.
 //
 // Parameters:
 //   - order: OrderMessage to validate
 //
 // Returns:
 //   - error: Error if validation fails, nil if order is valid
-func (o *OrderService) validateOrder(order OrderMessage) (bool, error) {
+func (o *OrderService) orderExists(order OrderMessage) (bool, error) {
 	status, err := o.cache.GetOrder(order.OrderId)
 	if err != nil {
 		o.logger.Warn("Fail to retrieve order from cache", zap.String("order_id", order.OrderId), zap.Error(err))
@@ -252,25 +253,25 @@ func (o *OrderService) validateOrder(order OrderMessage) (bool, error) {
 //   - *store.Credentials: Credentials for the specific store
 //   - *[]store.Credentials: All available store credentials
 //   - error: ErrCredentialsNotFound or other errors
-func (o *OrderService) getStoreCredentials(storeID string) (*store.Credentials, *[]store.Credentials, error) {
+func (o *OrderService) getStoreCredentials(storeID string) (*store.Credentials, *[]store.Credentials, map[interface{}]store.Credentials, error) {
 	credentials, err := o.store.RetrieveMeliCredentialsFromMeliUserID(storeID)
 	if err != nil {
 		o.logger.Error("Error in retrieving Meli credentials during order processing", err, zap.String("store_id", storeID))
-		return nil, nil, ErrCredentialsNotFound
+		return nil, nil, nil, ErrCredentialsNotFound
 	}
 
 	credMap, err := utils.HashMap(credentials, "UserID")
 	if err != nil {
 		o.logger.Error("Error in converting credentials to map", err, zap.String("store_id", storeID))
-		return nil, nil, ErrCredentialsNotFound
+		return nil, nil, nil, ErrCredentialsNotFound
 	}
 
 	rCredentials := findCredentialsByMeliUserID(storeID, credMap)
 	if rCredentials == nil {
-		return nil, nil, ErrCredentialsNotFound
+		return nil, nil, nil, ErrCredentialsNotFound
 	}
 
-	return rCredentials, credentials, nil
+	return rCredentials, credentials, credMap, nil
 }
 
 // fetchOrderData retrieves the order data from Mercado Livre API.
@@ -306,7 +307,6 @@ func (o *OrderService) syncItemQuantities(
 ) error {
 	clones, err := o.announce.RetrieveAnnouncementsFromAllAccounts(ctx.Item.Sku, ctx.AllCredentials)
 
-	// TODO: Review this error handling
 	if err != nil {
 		return o.handleAnnouncementError(err, ctx)
 	}
@@ -330,6 +330,8 @@ func (o *OrderService) updateCloneQuantities(
 	for _, cln := range *clones {
 		announcements := []common.MeliAnnouncement{}
 
+		credentials := findCredentialsByAccountID(cln.AccountID, ctx.CredentialsHashMap)
+
 		for _, cl := range *cln.Announcements {
 			if cl.Variations != nil {
 				ann := o.handleVariationUpdate(cl, ctx.Item, ctx.ProcessedVariations)
@@ -347,7 +349,7 @@ func (o *OrderService) updateCloneQuantities(
 		for _, ann := range announcements {
 			if ann.Variations != nil {
 				for _, variation := range ann.Variations {
-					if err := o.announce.UpdateQuantity(ann.ID, variation.AvailableQuantity, *ctx.Credentials, variation.ID); err != nil {
+					if err := o.announce.UpdateQuantity(ann.ID, variation.AvailableQuantity, *credentials, variation.ID); err != nil {
 						odrErr := &OrderError{
 							Message: "Error updating announcements",
 							AnnouncementsError: []announcement.Announcements{
@@ -378,7 +380,7 @@ func (o *OrderService) updateCloneQuantities(
 					}
 				}
 			} else {
-				if err := o.announce.UpdateQuantity(ann.ID, ann.Quantity, *ctx.Credentials); err != nil {
+				if err := o.announce.UpdateQuantity(ann.ID, ann.Quantity, *credentials); err != nil {
 					odrErr := &OrderError{
 						Message: "Error updating announcements",
 						AnnouncementsError: []announcement.Announcements{

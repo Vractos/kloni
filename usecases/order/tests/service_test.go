@@ -114,7 +114,7 @@ func TestProcessOrder(t *testing.T) {
 	// ------------------------ Mocks ------------------------
 	// -------------------------------------------------------
 	accountId := entity.ID(uuid.New())
-	seccondAccountId := entity.ID(uuid.New())
+	secondAccountId := entity.ID(uuid.New())
 	defaultOrderMessage := order.OrderMessage{
 		Store:         "1",
 		OrderId:       "20210101000000",
@@ -131,7 +131,7 @@ func TestProcessOrder(t *testing.T) {
 			},
 		},
 		{
-			ID: seccondAccountId,
+			ID: secondAccountId,
 			MeliCredential: &common.MeliCredential{
 				AccessToken: "test-access-token-2",
 				UserID:      "2",
@@ -739,6 +739,11 @@ func TestProcessOrder(t *testing.T) {
 						errors.New("error retrieving meli credentials"),
 						zap.String("store_id", defaultOrderMessage.Store),
 					),
+					m.mockLogger.EXPECT().Error(
+						"Error in retrieving store credentials",
+						gomock.Any(),
+						zap.String("store_id", defaultOrderMessage.Store),
+					),
 				)
 			},
 			errMessage: "credentials not found",
@@ -753,6 +758,11 @@ func TestProcessOrder(t *testing.T) {
 					m.mockStoreUseCase.EXPECT().RetrieveMeliCredentialsFromMeliUserID(gomock.Any()).Return(nilCredentials, nil),
 					m.mockLogger.EXPECT().Error(
 						"Error in converting credentials to map",
+						gomock.Any(),
+						zap.String("store_id", defaultOrderMessage.Store),
+					),
+					m.mockLogger.EXPECT().Error(
+						"Error in retrieving store credentials",
 						gomock.Any(),
 						zap.String("store_id", defaultOrderMessage.Store),
 					),
@@ -1337,6 +1347,11 @@ func TestProcessOrderErrors(t *testing.T) {
 				m.mockLogger.EXPECT().Error("Error in retrieving Meli credentials during order processing",
 					gomock.Any(),
 					zap.String("store_id", defaultOrderMessage.Store))
+				m.mockLogger.EXPECT().Error(
+					"Error in retrieving store credentials",
+					gomock.Any(),
+					zap.String("store_id", defaultOrderMessage.Store),
+				)
 			},
 			wantErr:    true,
 			errMessage: "credentials not found",
