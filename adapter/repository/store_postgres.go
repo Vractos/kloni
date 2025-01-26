@@ -121,17 +121,22 @@ func (r *StorePostgreSQL) RetrieveMeliCredentialsFromMeliUserID(accountId string
 	var credentials []store.Credentials
 
 	rows, err := r.db.Query(context.Background(), `
+  WITH target_owner AS (
+    SELECT owner_id
+    FROM mercadolivre_credentials
+    WHERE user_id=$1
+  )
 	SELECT
-		mc.id as account_id,
+		mc.id AS account_id,
 		mc.owner_id,
 		mc.account_name,
 		mc.access_token,
+    mc.user_id,
 		mc.refresh_token,
 		mc.updated_at
   	FROM
    		mercadolivre_credentials mc
-     WHERE
-     	id=$1
+    INNER JOIN target_owner to_id ON mc.owner_id = to_id.owner_id
 	`, accountId)
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -149,6 +154,7 @@ func (r *StorePostgreSQL) RetrieveMeliCredentialsFromMeliUserID(accountId string
 			&credential.OwnerID,
 			&credential.AccountName,
 			&credential.AccessToken,
+			&credential.UserID,
 			&credential.RefreshToken,
 			&credential.UpdatedAt,
 		)
@@ -156,6 +162,7 @@ func (r *StorePostgreSQL) RetrieveMeliCredentialsFromMeliUserID(accountId string
 			return nil, err
 		}
 
+		credentials = append(credentials, credential)
 	}
 
 	return &credentials, nil
