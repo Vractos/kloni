@@ -39,6 +39,9 @@ locals {
     database_security_group_id = module.network[0].database_security_group_id
     redis_security_group_id    = module.network[0].redis_security_group_id
     server_security_group_id   = module.network[0].server_security_group_id
+    vpc_cidr                   = module.network[0].vpc_cidr
+    private_route_table_id     = module.network[0].private_route_table_id
+    vpc_enable_dns_hostnames   = module.network[0].vpc_enable_dns_hostnames
     } : {
     vpc_id                     = null
     eip_id                     = null
@@ -48,6 +51,9 @@ locals {
     database_security_group_id = null
     redis_security_group_id    = null
     server_security_group_id   = null
+    vpc_cidr                   = null
+    private_route_table_id     = null
+    vpc_enable_dns_hostnames   = null
   }
 }
 
@@ -72,7 +78,7 @@ moved {
 module "queue" {
   source                 = "./modules/queue"
   project                = var.project
-  sqs_queue_name                  = (terraform.workspace == "prod") ? "orders" : "order-${terraform.workspace}"
+  sqs_queue_name         = (terraform.workspace == "prod") ? "orders" : "order-${terraform.workspace}"
   sqs_queue_allowed_user = data.aws_iam_user.sdk_user.arn
 }
 
@@ -93,18 +99,19 @@ moved {
   to   = module.computing[0]
 }
 
-module "cache" {
-  source  = "./modules/cache"
-  count   = (terraform.workspace != "dev") ? 1 : 0
-  project = var.project
-  depends_on = [
-    module.network
-  ]
-  subnet_id                = local.network_outputs.private_subnets[0]
-  redis_security_group_ids = local.network_outputs.redis_security_group_id
-}
+# module "cache" {
+#   source = "./modules/cache"
+#   count  = (terraform.workspace != "dev") ? 1 : 0
+#   # count   = (terraform.workspace != "dev") ? 0 : 1
+#   project = var.project
+#   depends_on = [
+#     module.network
+#   ]
+#   subnet_id                = local.network_outputs.private_subnets[0]
+#   redis_security_group_ids = local.network_outputs.redis_security_group_id
+# }
 
-moved {
-  from = module.cache
-  to   = module.cache[0]
-}
+# moved {
+#   from = module.cache
+#   to   = module.cache[0]
+# }

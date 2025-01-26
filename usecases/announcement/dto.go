@@ -5,9 +5,10 @@ import (
 )
 
 type CloneAnnouncementDtoInput struct {
-	RootID string    `json:"root_id"`
-	Titles []string  `json:"titles"`
-	Store  entity.ID `json:"store_id"`
+	RootID          string      `json:"root_id"`
+	Titles          []string    `json:"titles"`
+	RootAccountID   entity.ID   `json:"account_id"`
+	DestinyAccounts []entity.ID `json:"destiny_accounts"`
 }
 
 type GetAnnouncementsDtoInput struct {

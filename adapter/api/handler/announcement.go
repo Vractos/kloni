@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func cloneAnnouncement(service announcement.UseCase, logger metrics.Logger) http.HandlerFunc {
+func cloneAnnouncement(service announcement.UseCase, store store.UseCase, logger metrics.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		errorMessage := "Error to clone the announcement"
 		input := &announcement.CloneAnnouncementDtoInput{}
@@ -34,7 +34,7 @@ func cloneAnnouncement(service announcement.UseCase, logger metrics.Logger) http
 			return
 		}
 
-		store, err := entity.StringToID(storeId)
+		strUUID, err := entity.StringToID(storeId)
 		if err != nil {
 			logger.Error("Fail to convert storeID from a string to an entity ID", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -42,9 +42,15 @@ func cloneAnnouncement(service announcement.UseCase, logger metrics.Logger) http
 			return
 		}
 
-		input.Store = store
+		credentials, err := store.RetrieveMeliCredentialsFromStoreID(strUUID)
+		if err != nil {
+			logger.Error("Couldn't retrieve meli's credentials", err, zap.String("store_id", storeId))
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(errorMessage))
+			return
+		}
 
-		err = service.CloneAnnouncement(*input)
+		err = service.CloneAnnouncement(*input, credentials)
 		if err != nil {
 			logger.Error("Error to clone announcement", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -85,7 +91,7 @@ func getAnnouncements(announce announcement.UseCase, store store.UseCase, logger
 			return
 		}
 
-		anns, err := announce.RetrieveAnnouncements(sku, *credential)
+		anns, err := announce.RetrieveAnnouncementsFromAllAccounts(sku, credential)
 		if err != nil {
 			logger.Error("Fail to retrieve announcements", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -97,16 +103,31 @@ func getAnnouncements(announce announcement.UseCase, store store.UseCase, logger
 			return
 		}
 
-		output := make([]*presenter.Announcement, len(*anns))
-		for i, ann := range *anns {
-			output[i] = &presenter.Announcement{
-				ID:           ann.ID,
-				Title:        ann.Title,
-				Quantity:     ann.Quantity,
-				Price:        ann.Price,
-				ThumbnailURL: ann.ThumbnailURL,
-				Sku:          ann.Sku,
-				Link:         ann.Link,
+		output := []*presenter.Announcement{}
+		for _, ann := range *anns {
+			if ann.Announcements == nil {
+				continue
+			}
+			account := struct {
+				ID   string `json:"id"`
+				Name string `json:"name"`
+			}{
+				ID:   ann.AccountID.String(),
+				Name: ann.AccountName,
+			}
+
+			for _, an := range *ann.Announcements {
+				output = append(output, &presenter.Announcement{
+					ID:           an.ID,
+					Title:        an.Title,
+					Price:        an.Price,
+					Status:       an.Status,
+					ThumbnailURL: an.ThumbnailURL,
+					Quantity:     an.Quantity,
+					Sku:          an.Sku,
+					Link:         an.Link,
+					Account:      account,
+				})
 			}
 		}
 
@@ -121,7 +142,7 @@ func getAnnouncements(announce announcement.UseCase, store store.UseCase, logger
 
 func MakeAnnouncementHandlers(r chi.Router, announceService announcement.UseCase, storeService store.UseCase, logger metrics.Logger) {
 	r.Route("/announcement", func(r chi.Router) {
-		r.Post("/", cloneAnnouncement(announceService, logger))
+		r.Post("/", cloneAnnouncement(announceService, storeService, logger))
 		r.Get("/{sku}", getAnnouncements(announceService, storeService, logger))
 	})
 }

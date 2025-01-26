@@ -61,6 +61,7 @@ type MeliAnnouncement struct {
 	Sku           string
 	Link          string
 	CategoryID    string
+	Status        string
 	Condition     string
 	ListingTypeID string
 	Pictures      []string

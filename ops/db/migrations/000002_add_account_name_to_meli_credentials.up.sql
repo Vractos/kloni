@@ -1,0 +1,1 @@
+ALTER TABLE mercadolivre_credentials ADD COLUMN account_name VARCHAR(80);

@@ -8,6 +8,7 @@ type RegisterStoreDtoInput struct {
 }
 
 type RegisterMeliCredentialsDtoInput struct {
-	Code  string    `json:"code"`
-	Store entity.ID `json:"store_id"`
+	Code        string    `json:"code"`
+	Store       entity.ID `json:"store_id"`
+	AccountName string    `json:"account_name"`
 }
