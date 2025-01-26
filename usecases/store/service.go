@@ -146,7 +146,6 @@ func (s *StoreService) RetrieveMeliCredentialsFromMeliUserID(id string) (*[]Cred
 	}
 
 	return credentials, nil
-
 }
 
 func (s *StoreService) RefreshMeliCredential(accountId entity.ID, refreshToken string) (*Credentials, error) {

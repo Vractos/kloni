@@ -99,19 +99,19 @@ moved {
   to   = module.computing[0]
 }
 
-module "cache" {
-  source = "./modules/cache"
-  # count   = (terraform.workspace != "dev") ? 1 : 0
-  count   = (terraform.workspace != "dev") ? 0 : 1
-  project = var.project
-  depends_on = [
-    module.network
-  ]
-  subnet_id                = local.network_outputs.private_subnets[0]
-  redis_security_group_ids = local.network_outputs.redis_security_group_id
-}
+# module "cache" {
+#   source = "./modules/cache"
+#   count  = (terraform.workspace != "dev") ? 1 : 0
+#   # count   = (terraform.workspace != "dev") ? 0 : 1
+#   project = var.project
+#   depends_on = [
+#     module.network
+#   ]
+#   subnet_id                = local.network_outputs.private_subnets[0]
+#   redis_security_group_ids = local.network_outputs.redis_security_group_id
+# }
 
-moved {
-  from = module.cache
-  to   = module.cache[0]
-}
+# moved {
+#   from = module.cache
+#   to   = module.cache[0]
+# }
