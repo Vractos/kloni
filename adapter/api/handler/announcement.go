@@ -62,6 +62,54 @@ func cloneAnnouncement(service announcement.UseCase, store store.UseCase, logger
 	}
 }
 
+func importAnnouncement(service announcement.UseCase, store store.UseCase, logger metrics.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		errorMessage := "Error to import the announcement"
+		input := &announcement.ImportAnnouncementDtoInput{}
+		err := json.NewDecoder(r.Body).Decode(input)
+		if err != nil {
+			logger.Error("Error to decode body", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(errorMessage))
+			return
+		}
+
+		storeId, err := contexttools.RetrieveStoreIDFromCtx(r.Context())
+		if err != nil {
+			logger.Error("Fail to retrieve the storeID from the context", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(errorMessage))
+			return
+		}
+
+		strUUID, err := entity.StringToID(storeId)
+		if err != nil {
+			logger.Error("Fail to convert storeID from a string to an entity ID", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(errorMessage))
+			return
+		}
+
+		credentials, err := store.RetrieveMeliCredentialsFromStoreID(strUUID)
+		if err != nil {
+			logger.Error("Couldn't retrieve meli's credentials", err, zap.String("store_id", storeId))
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(errorMessage))
+			return
+		}
+
+		err = service.ImportAnnouncement(*input, credentials)
+		if err != nil {
+			logger.Error("Error to import announcement", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(errorMessage))
+			return
+		}
+
+		w.WriteHeader(http.StatusCreated)
+	}
+}
+
 func getAnnouncements(announce announcement.UseCase, store store.UseCase, logger metrics.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		errorMessage := "Error to get announcement"
@@ -144,5 +192,6 @@ func MakeAnnouncementHandlers(r chi.Router, announceService announcement.UseCase
 	r.Route("/announcement", func(r chi.Router) {
 		r.Post("/", cloneAnnouncement(announceService, storeService, logger))
 		r.Get("/{sku}", getAnnouncements(announceService, storeService, logger))
+		r.Post("/import", importAnnouncement(announceService, storeService, logger))
 	})
 }

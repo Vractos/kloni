@@ -19,5 +19,5 @@ type UseCase interface {
 	RetrieveAnnouncementsFromAllAccounts(sku string, credentials *[]store.Credentials) (*[]Announcements, error)
 	UpdateQuantity(id string, quantity int, credentials store.Credentials, variationIDs ...int) error
 	CloneAnnouncement(input CloneAnnouncementDtoInput, credentials *[]store.Credentials) error
-	ImportAnnouncement(input ImportAnnouncementDtoInput) error
+	ImportAnnouncement(input ImportAnnouncementDtoInput, credentials *[]store.Credentials) error
 }
