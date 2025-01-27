@@ -165,6 +165,7 @@ func (m *MercadoLivre) GetAnnouncements(ids []string, accessToken string) (*[]co
 			Title:        a.Body.Title,
 			Quantity:     a.Body.AvailableQuantity,
 			Price:        a.Body.Price,
+			Status:       a.Body.Status,
 			ThumbnailURL: a.Body.Thumbnail,
 			Sku:          sku,
 			Variations:   variations,
@@ -677,4 +678,198 @@ func (m *MercadoLivre) handleAnnouncementPic(index int, pic AnnouncementPicture,
 		}
 	}
 	ch <- imgsResult{index, pic.URL, nil}
+}
+
+func (m *MercadoLivre) GetAnnouncementCompatibilities(id string, accessToken string) ([]common.AnnouncementCompatibilityProduct, error) {
+	urlPath := fmt.Sprintf("%s/items/%s/compatibilities", m.Endpoint, id)
+
+	req, err := http.NewRequest(http.MethodGet, urlPath, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+accessToken)
+	resp, err := m.HttpClient.Do(req)
+	if err != nil {
+		m.Logger.Error(
+			"Error to make a request to Mercado Livre",
+			err,
+			zap.String("announcement_id", id),
+			zap.String("path", "/"+urlPath),
+		)
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		getCompatibilitiesError := &MeliError{}
+		if err := json.NewDecoder(resp.Body).Decode(getCompatibilitiesError); err != nil {
+			m.Logger.Error(
+				"Error to decode response body",
+				err,
+			)
+			return nil, err
+		}
+		m.Logger.Warn(
+			"Couldn't retrieve compatibilities",
+			zap.String("announcements_id", id),
+			zap.String("meli_message", getCompatibilitiesError.Message),
+			zap.String("meli_erro", getCompatibilitiesError.Error),
+			zap.Any("cause", getCompatibilitiesError.Cause),
+			zap.Int("status_code", resp.StatusCode),
+		)
+		return nil, errors.New("error to fetch compatibilities")
+	}
+
+	compatibilities := &CompatibilitiesProduct{}
+	if err := json.NewDecoder(resp.Body).Decode(compatibilities); err != nil {
+		return nil, err
+	}
+
+	compatibilitiesList := make([]common.AnnouncementCompatibilityProduct, len(*&compatibilities.Products))
+	for i, c := range *&compatibilities.Products {
+		compatibilitiesList[i] = common.AnnouncementCompatibilityProduct{
+			ID:                 c.CatalogProductID,
+			DomainID:           c.DomainID,
+			CatalogProductID:   c.CatalogProductID,
+			CatalogProductName: c.CatalogProductName,
+			Source:             c.Source,
+			Universal:          c.Universal,
+		}
+	}
+
+	return compatibilitiesList, nil
+}
+
+func (m *MercadoLivre) AddCompatibilities(announcementId, accessToken string, compatibilities *[]common.AnnouncementCompatibilityProduct) error {
+	urlPath := fmt.Sprintf("%s/items/%s/compatibilities", m.Endpoint, announcementId)
+
+	compatibilitiesPayload := make([]map[string]interface{}, len(*compatibilities))
+	for i, c := range *compatibilities {
+		compatibilitiesPayload[i] = map[string]interface{}{
+			"id":                   c.ID,
+			"catalog_product_id":   c.CatalogProductID,
+			"catalog_product_name": c.CatalogProductName,
+			"source":               c.Source,
+			"domain_id":            c.DomainID,
+			"universal":            c.Universal,
+		}
+	}
+
+	bodyRequest := map[string]interface{}{
+		"products": compatibilitiesPayload,
+	}
+
+	jsonBody, err := json.Marshal(bodyRequest)
+	if err != nil {
+		m.Logger.Error(
+			"Fail to encode the request body",
+			err,
+		)
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, urlPath, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+accessToken)
+	resp, err := m.HttpClient.Do(req)
+	if err != nil {
+		m.Logger.Error(
+			"Error to make a request to Mercado Livre",
+			err,
+			zap.String("announcement_id", announcementId),
+			zap.String("path", "/"+urlPath),
+		)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusNoContent {
+		addAnnouncementsError := &MeliError{}
+		if err := json.NewDecoder(resp.Body).Decode(addAnnouncementsError); err != nil {
+			m.Logger.Error(
+				"Error to decode response body",
+				err,
+			)
+			return err
+		}
+		m.Logger.Warn(
+			"Fail to add compatibilities to the announcement",
+			zap.String("announcement_id", announcementId),
+			zap.String("meli_message", addAnnouncementsError.Message),
+			zap.String("meli_erro", addAnnouncementsError.Error),
+			zap.Any("cause", addAnnouncementsError.Cause),
+			zap.Int("status_code", resp.StatusCode),
+		)
+		return errors.New("error to add compatibilities")
+	}
+
+	return nil
+}
+
+func (m *MercadoLivre) AddCompatibilityException(announcementId, accessToken string) error {
+	urlPath := fmt.Sprintf("%s/items/%s/compatibilities/exception", m.Endpoint, announcementId)
+	bodyRequest := map[string]interface{}{
+		"comment": "Não é possível informar compatibilidade, é preciso confirmar com o chassi",
+	}
+
+	jsonBody, err := json.Marshal(bodyRequest)
+	if err != nil {
+		m.Logger.Error(
+			"Fail to encode the request body",
+			err,
+		)
+		return err
+	}
+	req, err := http.NewRequest(http.MethodPost, urlPath, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+accessToken)
+	resp, err := m.HttpClient.Do(req)
+	if err != nil {
+		m.Logger.Error(
+			"Error to make a request to Mercado Livre",
+			err,
+			zap.String("announcement_id", announcementId),
+			zap.String("path", "/"+urlPath),
+		)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusNoContent {
+		addAnnouncementsError := &MeliError{}
+		if err := json.NewDecoder(resp.Body).Decode(addAnnouncementsError); err != nil {
+			m.Logger.Error(
+				"Error to decode response body",
+				err,
+			)
+			return err
+		}
+		m.Logger.Warn(
+			"Fail to add compatibility exception to the announcement",
+			zap.String("announcement_id", announcementId),
+			zap.String("meli_message", addAnnouncementsError.Message),
+			zap.String("meli_erro", addAnnouncementsError.Error),
+			zap.Any("cause", addAnnouncementsError.Cause),
+			zap.Int("status_code", resp.StatusCode),
+		)
+		return errors.New("error to add compatibility exception")
+	}
+
+	return nil
 }

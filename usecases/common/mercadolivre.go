@@ -61,6 +61,7 @@ type MeliAnnouncement struct {
 	Sku           string
 	Link          string
 	CategoryID    string
+	Status        string
 	Condition     string
 	ListingTypeID string
 	Pictures      []string
@@ -106,6 +107,15 @@ type MeliAnnouncement struct {
 	}
 }
 
+type AnnouncementCompatibilityProduct struct {
+	ID                 string
+	DomainID           string
+	CatalogProductID   string
+	CatalogProductName string
+	Source             string
+	Universal          bool
+}
+
 /*
 ###################################
 ###################################
@@ -136,6 +146,7 @@ type meliReaderAnnouncement interface {
 	GetAnnouncement(id string, accessToken string) (*MeliAnnouncement, error)
 	GetDescription(id string) (*string, error)
 	GetProductsPictures(picturesURL []string) (pics []image.Image, err error)
+	GetAnnouncementCompatibilities(id string, accessToken string) ([]AnnouncementCompatibilityProduct, error)
 }
 
 type meliWriterAnnouncement interface {
@@ -143,6 +154,8 @@ type meliWriterAnnouncement interface {
 	PublishAnnouncement(announcementJson []byte, accessToken string) (ID *string, err error)
 	AddDescription(description, announcementId, accessToken string) error
 	ValidateAndExchangeImages(images []*image.Image, accessToken string) (urlF []string, err error)
+	AddCompatibilities(announcementId, accessToken string, compatibilities *[]AnnouncementCompatibilityProduct) error
+	AddCompatibilityException(announcementId, accessToken string) error
 }
 
 type MercadoLivre interface {

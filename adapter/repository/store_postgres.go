@@ -7,6 +7,7 @@ import (
 	"github.com/Vractos/kloni/entity"
 	"github.com/Vractos/kloni/pkg/metrics"
 	"github.com/Vractos/kloni/usecases/common"
+	"github.com/Vractos/kloni/usecases/store"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
@@ -54,11 +55,11 @@ func (r *StorePostgreSQL) Update(e *entity.Store) error {
 }
 
 // RegisterMeliCredential implements store.Repository
-func (r *StorePostgreSQL) RegisterMeliCredential(id entity.ID, c *common.MeliCredential) error {
+func (r *StorePostgreSQL) RegisterMeliCredential(id entity.ID, owner_id entity.ID, c *common.MeliCredential, account_name string) error {
 	_, err := r.db.Exec(context.Background(), `
-  INSERT INTO mercadolivre_credentials(owner_id, access_token, expires_in, user_id, refresh_token, updated_at)
-  VALUES($1,$2,$3,$4,$5,$6)
-  `, id, c.AccessToken, c.ExpiresIn, c.UserID, c.RefreshToken, c.UpdatedAt)
+  INSERT INTO mercadolivre_credentials(id, owner_id, access_token, expires_in, user_id, refresh_token, updated_at, account_name)
+  VALUES($1,$2,$3,$4,$5,$6, $7, $8)
+  `, id, owner_id, c.AccessToken, c.ExpiresIn, c.UserID, c.RefreshToken, c.UpdatedAt, account_name)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -70,20 +71,22 @@ func (r *StorePostgreSQL) RegisterMeliCredential(id entity.ID, c *common.MeliCre
 }
 
 // RetrieveMeliCredentials implements store.Repository
-func (r *StorePostgreSQL) RetrieveMeliCredentialsFromStoreID(id entity.ID) (*common.MeliCredential, error) {
-	var credential common.MeliCredential
+func (r *StorePostgreSQL) RetrieveMeliCredentialsFromStoreID(id entity.ID) (*[]store.Credentials, error) {
+	var credentials []store.Credentials
 
-	err := r.db.QueryRow(context.Background(), `
-	SELECT
-  access_token,
-  user_id,
-    refresh_token,
-    updated_at
-    FROM
-    mercadolivre_credentials
-    WHERE
-    owner_id=$1
-    `, id).Scan(&credential.AccessToken, &credential.UserID, &credential.RefreshToken, &credential.UpdatedAt)
+	rows, err := r.db.Query(context.Background(), `
+		SELECT
+			mc.id as account_id,
+			mc.account_name,
+		  mc.user_id AS mercadolivre_user_id,
+			mc.access_token,
+			mc.refresh_token,
+			mc.updated_at
+		FROM
+			mercadolivre_credentials mc
+		WHERE
+			mc.owner_id = $1
+    `, id)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -92,50 +95,91 @@ func (r *StorePostgreSQL) RetrieveMeliCredentialsFromStoreID(id entity.ID) (*com
 		return nil, err
 	}
 
-	return &credential, nil
+	for rows.Next() {
+		credential := store.Credentials{MeliCredential: &common.MeliCredential{}}
+
+		err := rows.Scan(
+			&credential.ID,
+			&credential.AccountName,
+			&credential.UserID,
+			&credential.AccessToken,
+			&credential.RefreshToken,
+			&credential.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		credentials = append(credentials, credential)
+	}
+
+	return &credentials, nil
 }
 
 // RetrieveMeliCredentials implements store.Repository
-func (r *StorePostgreSQL) RetrieveMeliCredentialsFromMeliUserID(id string) (*entity.ID, *common.MeliCredential, error) {
-	var (
-		storeId    entity.ID
-		credential common.MeliCredential
-	)
+func (r *StorePostgreSQL) RetrieveMeliCredentialsFromMeliUserID(accountId string) (*[]store.Credentials, error) {
+	var credentials []store.Credentials
 
-	err := r.db.QueryRow(context.Background(), `
+	rows, err := r.db.Query(context.Background(), `
+  WITH target_owner AS (
+    SELECT owner_id
+    FROM mercadolivre_credentials
+    WHERE user_id=$1
+  )
 	SELECT
-  owner_id,
-  access_token,
-  refresh_token,
-  updated_at
-  FROM
-  mercadolivre_credentials
-  WHERE
-  user_id=$1
-	`, id).Scan(&storeId, &credential.AccessToken, &credential.RefreshToken, &credential.UpdatedAt)
+		mc.id AS account_id,
+		mc.owner_id,
+		mc.account_name,
+		mc.access_token,
+    mc.user_id,
+		mc.refresh_token,
+		mc.updated_at
+  	FROM
+   		mercadolivre_credentials mc
+    INNER JOIN target_owner to_id ON mc.owner_id = to_id.owner_id
+	`, accountId)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			r.logger.Error(pgErr.Message, pgErr, zap.String("db_error_code", pgErr.Code))
 		}
-		return nil, nil, err
+		return nil, err
 	}
 
-	return &storeId, &credential, nil
+	for rows.Next() {
+		credential := store.Credentials{MeliCredential: &common.MeliCredential{}}
+
+		err := rows.Scan(
+			&credential.ID,
+			&credential.OwnerID,
+			&credential.AccountName,
+			&credential.AccessToken,
+			&credential.UserID,
+			&credential.RefreshToken,
+			&credential.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		credentials = append(credentials, credential)
+	}
+
+	return &credentials, nil
 }
 
 // UpdateMeliCredentials implements store.Repository
-func (r *StorePostgreSQL) UpdateMeliCredentials(id entity.ID, c *common.MeliCredential) error {
+func (r *StorePostgreSQL) UpdateMeliCredentials(accountId entity.ID, c *common.MeliCredential) error {
 	_, err := r.db.Exec(context.Background(), `
     UPDATE
-    mercadolivre_credentials
-    SET 
-    access_token=$1,
-    refresh_token=$2,
-    updated_at=$3
-    WHERE 
-    owner_id=$4
-    `, c.AccessToken, c.RefreshToken, c.UpdatedAt, id)
+    	mercadolivre_credentials
+    SET
+    	access_token=$1,
+     	refresh_token=$2,
+      	updated_at=$3
+    WHERE
+    	id=$4
+    `, c.AccessToken, c.RefreshToken, c.UpdatedAt, accountId)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {

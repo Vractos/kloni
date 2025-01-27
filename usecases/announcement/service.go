@@ -27,7 +27,7 @@ func NewAnnouncementService(mercadolivre common.MercadoLivre, storeUseCase store
 }
 
 func (a *AnnouncementService) RetrieveAnnouncements(sku string, credentials store.Credentials) (*[]common.MeliAnnouncement, error) {
-	annIDs, err := a.meli.GetAnnouncementsIDsViaSKU(sku, credentials.MeliUserID, credentials.MeliAccessToken)
+	annIDs, err := a.meli.GetAnnouncementsIDsViaSKU(sku, credentials.UserID, credentials.AccessToken)
 	if err != nil {
 		cErr := &AnnouncementError{
 			Message: "Error to retrieve the announcements IDs",
@@ -45,7 +45,7 @@ func (a *AnnouncementService) RetrieveAnnouncements(sku string, credentials stor
 		annIDsChunk := utils.Chunk(annIDs, 20)
 		anns := make([]common.MeliAnnouncement, len(annIDs))
 		for i, ids := range annIDsChunk {
-			annsRes, err := a.meli.GetAnnouncements(ids, credentials.MeliAccessToken)
+			annsRes, err := a.meli.GetAnnouncements(ids, credentials.AccessToken)
 			if err != nil {
 				cErr := &AnnouncementError{
 					Message:       "Error to retrieve announcements",
@@ -64,7 +64,7 @@ func (a *AnnouncementService) RetrieveAnnouncements(sku string, credentials stor
 		return &anns, err
 	}
 
-	anns, err := a.meli.GetAnnouncements(annIDs, credentials.MeliAccessToken)
+	anns, err := a.meli.GetAnnouncements(annIDs, credentials.AccessToken)
 	if err != nil {
 		cErr := &AnnouncementError{
 			Message:       "Error to retrieve announcements",
@@ -76,8 +76,31 @@ func (a *AnnouncementService) RetrieveAnnouncements(sku string, credentials stor
 	return anns, err
 }
 
+func (a *AnnouncementService) RetrieveAnnouncementsFromAllAccounts(sku string, credentials *[]store.Credentials) (*[]Announcements, error) {
+	announcements := make([]Announcements, len(*credentials))
+	for i, cred := range *credentials {
+		anns, err := a.RetrieveAnnouncements(sku, cred)
+		if err != nil {
+			cErr := &AnnouncementError{
+				Message: "Error to retrieve announcements",
+				Sku:     sku,
+			}
+			a.logger.Error(cErr.Message, err, zap.String("sku", sku))
+			return nil, cErr
+		}
+
+		announcements[i] = Announcements{
+			AccountID:     cred.ID,
+			AccountName:   utils.GetOrDefault(cred.AccountName, ""),
+			Announcements: anns,
+		}
+	}
+
+	return &announcements, nil
+}
+
 func (a *AnnouncementService) UpdateQuantity(id string, newQuantity int, credentials store.Credentials, variationIDs ...int) error {
-	err := a.meli.UpdateQuantity(newQuantity, id, credentials.MeliAccessToken, variationIDs...)
+	err := a.meli.UpdateQuantity(newQuantity, id, credentials.AccessToken, variationIDs...)
 	if err != nil {
 		cErr := &AnnouncementError{
 			Message:        "Error to update quantity",
@@ -92,7 +115,7 @@ func (a *AnnouncementService) UpdateQuantity(id string, newQuantity int, credent
 }
 
 func (a *AnnouncementService) getAnnouncement(id string, credentials store.Credentials) (*common.MeliAnnouncement, error) {
-	ann, err := a.meli.GetAnnouncement(id, credentials.MeliAccessToken)
+	ann, err := a.meli.GetAnnouncement(id, credentials.AccessToken)
 	if err != nil {
 		cErr := &AnnouncementError{
 			Message:        "Error to retrieve root announcement",
@@ -112,13 +135,16 @@ func (a *AnnouncementService) getAnnouncement(id string, credentials store.Crede
 }
 
 // CloneAnnouncement implements UseCase
-func (a *AnnouncementService) CloneAnnouncement(input CloneAnnouncementDtoInput) error {
-	credentials, err := a.store.RetrieveMeliCredentialsFromStoreID(input.Store)
+func (a *AnnouncementService) CloneAnnouncement(input CloneAnnouncementDtoInput, credentials *[]store.Credentials) error {
+	credMap, err := utils.HashMap(credentials, "ID")
 	if err != nil {
-		a.logger.Error("Error in retrieving meli credentials during the cloning process", err, zap.String("store_id", input.Store.String()))
-		return errors.New("error to clone the announcement - get credentials")
+		a.logger.Error("Error to create credentials map", err)
+		return errors.New("error to create credentials map")
 	}
-	ann, err := a.getAnnouncement(input.RootID, *credentials)
+	rootCredentials := findCredentialsByID(input.RootAccountID, credMap)
+
+	a.logger.Warn("Root credentials", zap.Any("root_credentials", input.RootAccountID.String()))
+	ann, err := a.getAnnouncement(input.RootID, *rootCredentials)
 	if err != nil {
 		a.logger.Error(
 			"Error in retrieving root announcement during the cloning process",
@@ -146,70 +172,66 @@ func (a *AnnouncementService) CloneAnnouncement(input CloneAnnouncementDtoInput)
 		newAnns[i+1] = *nAnn
 	}
 
-	for _, ans := range newAnns {
-		jsonAnn, err := json.Marshal(ans)
-		if err != nil {
-			a.logger.Error("Error to marshal announcement json", err, zap.String("announcement_id", input.RootID))
-			return errors.New("error to marshal announcement json")
-		}
-
-		rAnn, err := a.meli.PublishAnnouncement(jsonAnn, credentials.MeliAccessToken)
-		if err != nil {
-			cErr := &AnnouncementError{
-				Message: "Error to publish an announcement",
+	for _, id := range input.DestinyAccounts {
+		credential := findCredentialsByID(id, credMap)
+		for _, ans := range newAnns {
+			jsonAnn, err := json.Marshal(ans)
+			if err != nil {
+				a.logger.Error("Error to marshal announcement json", err, zap.String("announcement_id", input.RootID))
+				return errors.New("error to marshal announcement json")
 			}
-			a.logger.Error(cErr.Message, err, zap.String("announcement_id", input.RootID))
-			return errors.New("error to publish clone")
-		}
 
-		a.logger.Info("New clone", zap.String("new_announcement_id", *rAnn))
+			rAnn, err := a.meli.PublishAnnouncement(jsonAnn, credential.AccessToken)
+			if err != nil {
+				cErr := &AnnouncementError{
+					Message: "Error to publish an announcement",
+				}
+				a.logger.Error(cErr.Message, err, zap.String("announcement_id", input.RootID))
+				return errors.New("error to publish clone")
+			}
 
-		err = a.meli.AddDescription(ann.Description, *rAnn, credentials.MeliAccessToken)
-		if err != nil {
-			a.logger.Error("Error to add description", err, zap.String("announcement_id", *rAnn))
+			a.logger.Info("New clone", zap.String("new_announcement_id", *rAnn))
+
+			err = a.meli.AddDescription(ann.Description, *rAnn, credential.AccessToken)
+			if err != nil {
+				a.logger.Error("Error to add description", err, zap.String("announcement_id", *rAnn))
+			}
+
+			// TODO: When the product (root and new) are from the same account, this [method](https://arc.net/l/quote/gwptiykv) should be used
+			err = a.cloneCompatibilityProductsFromDiffAccounts(input.RootID, *rAnn, rootCredentials.AccessToken, credential.AccessToken)
 		}
 	}
 
 	return nil
 }
 
-// TODO: Implement this properly
-func (a *AnnouncementService) ImportAnnouncement(input ImportAnnouncementDtoInput) error {
-	originCredentials, err := a.store.RetrieveMeliCredentialsFromStoreID(input.StoreOrigin)
+func (a *AnnouncementService) ImportAnnouncement(input ImportAnnouncementDtoInput, credentials *[]store.Credentials) error {
+	credMap, err := utils.HashMap(credentials, "ID")
 	if err != nil {
-		a.logger.Error("Error in retrieving meli credentials, from origin store, during the importing process", err, zap.String("store_id", input.StoreOrigin.String()))
-		return errors.New("error to import the announcement - get credentials")
+		a.logger.Error("Error to create credentials map", err)
+		return errors.New("error to create credentials map")
+	}
+	originCredentials := findCredentialsByID(input.AccountOrigin, credMap)
+
+	ann, err := a.getAnnouncement(input.AnnouncementID, *originCredentials)
+	if err != nil {
+		a.logger.Error(
+			"Error in retrieving root announcement during the cloning process",
+			err,
+			zap.String("announcement_id", input.AnnouncementID))
+		return errors.New("error to clone the announcement - get root announcement")
 	}
 
-	destinyCredentials, err := a.store.RetrieveMeliCredentialsFromStoreID(input.StoreDestiny)
+	credential := findCredentialsByID(input.AccountDestiny, credMap)
+	newAnn, err := entity.NewAnnouncement(ann)
 	if err != nil {
-		a.logger.Error("Error in retrieving meli credentials, from destiny store, during the importing process", err, zap.String("store_id", input.StoreDestiny.String()))
-		return errors.New("error to import the announcement - get credentials")
-	}
-
-	announcement, err := a.getAnnouncement(input.AnnouncementID, *originCredentials)
-	if err != nil {
-		a.logger.Error("Error in retrieving announcement during the importing process", err, zap.String("announcement_id", announcement.ID))
-		return errors.New("error to import the announcement - get announcement")
-	}
-
-	if announcement.Quantity == 0 {
-		return errors.New("error to import the announcement - quantity is 0")
-	}
-
-	newAnn, err := entity.NewAnnouncement(announcement)
-	if err != nil {
-		a.logger.Error("Error in the generation of a new announcement during the cloning process", err, zap.String("announcement_id", input.AnnouncementID))
+		a.logger.Error("Error in the generation of a new announcement", err, zap.String("announcement_id", ann.ID))
 		return err
 	}
 
 	jsonAnn, err := json.Marshal(newAnn)
-	if err != nil {
-		a.logger.Error("Error to marshal announcement json", err, zap.String("announcement_id", input.AnnouncementID))
-		return errors.New("error to marshal announcement json")
-	}
 
-	rAnn, err := a.meli.PublishAnnouncement(jsonAnn, destinyCredentials.MeliAccessToken)
+	rAnn, err := a.meli.PublishAnnouncement(jsonAnn, credential.AccessToken)
 	if err != nil {
 		cErr := &AnnouncementError{
 			Message: "Error to publish an announcement",
@@ -220,10 +242,55 @@ func (a *AnnouncementService) ImportAnnouncement(input ImportAnnouncementDtoInpu
 
 	a.logger.Info("Imported", zap.String("new_announcement_id", *rAnn))
 
-	err = a.meli.AddDescription(announcement.Description, *rAnn, destinyCredentials.MeliAccessToken)
+	err = a.meli.AddDescription(ann.Description, *rAnn, credential.AccessToken)
 	if err != nil {
 		a.logger.Error("Error to add description", err, zap.String("announcement_id", *rAnn))
 	}
 
+	err = a.cloneCompatibilityProductsFromDiffAccounts(input.AnnouncementID, *rAnn, originCredentials.AccessToken, credential.AccessToken)
+	if err != nil {
+		a.logger.Error("Error to clone compatibility products", err, zap.String("announcement_id", input.AnnouncementID))
+	}
+
+	return nil
+}
+
+func (a *AnnouncementService) cloneCompatibilityProductsFromDiffAccounts(rootAnnID, newAnnID, rAccessToken, dAccessToken string) error {
+	compat, err := a.meli.GetAnnouncementCompatibilities(rootAnnID, rAccessToken)
+	if err != nil {
+		cErr := &AnnouncementError{
+			Message: "Error to retrieve compatibilities",
+		}
+		a.logger.Error(cErr.Message, err, zap.String("announcement_id", rootAnnID))
+		return cErr
+	}
+
+	if len(compat) != 0 {
+		err = a.meli.AddCompatibilities(newAnnID, dAccessToken, &compat)
+		if err != nil {
+			cErr := &AnnouncementError{
+				Message: "Error to add compatibilities",
+			}
+			a.logger.Error(cErr.Message, err, zap.String("announcement_id", newAnnID))
+			return cErr
+		}
+	} else {
+		err = a.meli.AddCompatibilityException(newAnnID, dAccessToken)
+		if err != nil {
+			cErr := &AnnouncementError{
+				Message: "Error to add compatibility exception",
+			}
+			a.logger.Error(cErr.Message, err, zap.String("announcement_id", newAnnID))
+			return cErr
+		}
+	}
+
+	return nil
+}
+
+func findCredentialsByID(id entity.ID, hashMap map[interface{}]store.Credentials) *store.Credentials {
+	if val, ok := hashMap[id]; ok {
+		return &val
+	}
 	return nil
 }

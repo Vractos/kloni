@@ -41,7 +41,10 @@ func (s *StoreService) RegisterMeliCredentials(input RegisterMeliCredentialsDtoI
 		)
 		return err
 	}
-	if err := s.repo.RegisterMeliCredential(input.Store, credentials); err != nil {
+
+	id := entity.NewID()
+
+	if err := s.repo.RegisterMeliCredential(id, input.Store, credentials, input.AccountName); err != nil {
 		s.logger.Error(
 			"Fail to store meli's credentials",
 			err,
@@ -52,7 +55,27 @@ func (s *StoreService) RegisterMeliCredentials(input RegisterMeliCredentialsDtoI
 	return nil
 }
 
-func (s *StoreService) RetrieveMeliCredentialsFromStoreID(id entity.ID) (*Credentials, error) {
+// Checks if the credentials are still valid
+func (s *StoreService) validateCredentials(credentials *Credentials) (*Credentials, error) {
+	timeNowUTC := time.Now().UTC()
+	if timeNowUTC.Sub(credentials.UpdatedAt.UTC()).Hours() >= 5 {
+		credentialsData, err := s.RefreshMeliCredential(credentials.ID, credentials.RefreshToken)
+		if err != nil {
+			s.logger.Error(
+				"Fail to refresh meli's credentials",
+				err,
+				zap.String("account_id", credentials.ID.String()),
+			)
+			return nil, err
+		}
+
+		return credentialsData, nil
+	} else {
+		return credentials, nil
+	}
+}
+
+func (s *StoreService) RetrieveMeliCredentialsFromStoreID(id entity.ID) (*[]Credentials, error) {
 	credentials, err := s.repo.RetrieveMeliCredentialsFromStoreID(id)
 	if err != nil {
 		s.logger.Error(
@@ -63,30 +86,33 @@ func (s *StoreService) RetrieveMeliCredentialsFromStoreID(id entity.ID) (*Creden
 		return nil, err
 	}
 
-	timeNowUTC := time.Now().UTC()
-	if timeNowUTC.Sub(credentials.UpdatedAt.UTC()).Hours() >= 5 {
-		credentialsData, err := s.RefreshMeliCredential(id, credentials.RefreshToken)
+	// Check if the credentials are still valid, if not, refresh them
+	// Also, format the data to be returned
+	for i, credential := range *credentials {
+		credentialsData, err := s.validateCredentials(&credential)
 		if err != nil {
 			s.logger.Error(
-				"Fail to refresh meli's credentials",
+				"Fail to validate meli's credentials",
 				err,
-				zap.String("store_id", id.String()),
+				zap.String("account_id", credential.ID.String()),
 			)
-			return nil, err
 		}
 
-		return credentialsData, nil
+		(*credentials)[i] = Credentials{
+			ID:          credential.ID,
+			AccountName: credential.AccountName,
+			MeliCredential: &common.MeliCredential{
+				AccessToken: credentialsData.AccessToken,
+				UserID:      credentialsData.UserID,
+			},
+		}
 	}
 
-	return &Credentials{
-		StoreID:         id,
-		MeliAccessToken: credentials.AccessToken,
-		MeliUserID:      credentials.UserID,
-	}, nil
+	return credentials, nil
 }
 
-func (s *StoreService) RetrieveMeliCredentialsFromMeliUserID(id string) (*Credentials, error) {
-	storeId, credentials, err := s.repo.RetrieveMeliCredentialsFromMeliUserID(id)
+func (s *StoreService) RetrieveMeliCredentialsFromMeliUserID(id string) (*[]Credentials, error) {
+	credentials, err := s.repo.RetrieveMeliCredentialsFromMeliUserID(id)
 	if err != nil {
 		s.logger.Error(
 			"Fail to retrieve meli credentials via the meli user ID",
@@ -96,53 +122,62 @@ func (s *StoreService) RetrieveMeliCredentialsFromMeliUserID(id string) (*Creden
 		return nil, err
 	}
 
-	timeNowUTC := time.Now().UTC()
-	if timeNowUTC.Sub(credentials.UpdatedAt.UTC()).Hours() >= 5 {
-		credentialsData, err := s.RefreshMeliCredential(*storeId, credentials.RefreshToken)
+	// Check if the credentials are still valid, if not, refresh them
+	// Also, format the data to be returned
+	for i, credential := range *credentials {
+		credentialsData, err := s.validateCredentials(&credential)
 		if err != nil {
 			s.logger.Error(
-				"Fail to refresh meli's credentials",
+				"Fail to validate meli's credentials",
 				err,
-				zap.String("user_id", id),
+				zap.String("account_id", credential.ID.String()),
 			)
-			return nil, err
 		}
 
-		return credentialsData, nil
+		(*credentials)[i] = Credentials{
+			ID:          credential.ID,
+			OwnerID:     credential.OwnerID,
+			AccountName: credential.AccountName,
+			MeliCredential: &common.MeliCredential{
+				AccessToken: credentialsData.AccessToken,
+				UserID:      credentialsData.UserID,
+			},
+		}
 	}
 
-	return &Credentials{
-		StoreID:         *storeId,
-		MeliAccessToken: credentials.AccessToken,
-		MeliUserID:      id,
-	}, nil
+	return credentials, nil
 }
 
-func (s *StoreService) RefreshMeliCredential(storeId entity.ID, refreshToken string) (*Credentials, error) {
+func (s *StoreService) RefreshMeliCredential(accountId entity.ID, refreshToken string) (*Credentials, error) {
 	credentials, err := s.meli.RefreshCredentials(refreshToken)
 	if err != nil {
 		s.logger.Error(
 			"Fail to refresh meli's credentials",
 			err,
-			zap.String("store_id", storeId.String()),
+			zap.String("account_id", accountId.String()),
 		)
 		return nil, err
 	}
 
-	s.logger.Info("Meli's credentials were updated", zap.String("store_id", storeId.String()))
+	s.logger.Info("Meli's credentials were updated", zap.String("account_id", accountId.String()))
 
-	if err := s.repo.UpdateMeliCredentials(storeId, credentials); err != nil {
+	if err := s.repo.UpdateMeliCredentials(accountId, credentials); err != nil {
 		s.logger.Error(
 			"Fail to update meli's credentials",
 			err,
-			zap.String("store_id", storeId.String()),
+			zap.String("account_id", accountId.String()),
 		)
 		return nil, err
 	}
 
 	return &Credentials{
-		StoreID:         storeId,
-		MeliAccessToken: credentials.AccessToken,
-		MeliUserID:      credentials.UserID,
+		ID: accountId,
+		MeliCredential: &common.MeliCredential{
+			AccessToken: credentials.AccessToken,
+			UserID:      credentials.UserID,
+		},
 	}, nil
 }
+
+// Exported for testing purposes
+var ValidateCredentialsTest = (*StoreService).validateCredentials

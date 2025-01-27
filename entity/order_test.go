@@ -79,7 +79,7 @@ func TestOrderStatus(t *testing.T) {
 }
 
 type NewOrderArguments struct {
-	StoreID       ID
+	AccountID     ID
 	MarketplaceID string
 	Items         []OrderItem
 	Status        OrderStatus
@@ -92,20 +92,21 @@ func TestNewOrder(t *testing.T) {
 	}
 
 	tests := []struct {
-		name  string
-		input NewOrderArguments
-		want  *Order
+		name    string
+		input   NewOrderArguments
+		want    *Order
+		wantErr bool
 	}{
 		{
-			name: "New Order",
+			name: "Valid Order",
 			input: NewOrderArguments{
-				StoreID:       storeID,
+				AccountID:     storeID,
 				MarketplaceID: "MLB200004894",
 				Items:         []OrderItem{{Title: "Item 1", Quantity: 1, Sku: "SKU-1"}},
-				Status:        "confirmed",
+				Status:        Confirmed,
 			},
 			want: &Order{
-				StoreID:       storeID,
+				AccountID:     storeID,
 				MarketplaceID: "MLB200004894",
 				DateCreated:   time.Now().UTC(),
 				Items: []OrderItem{
@@ -117,33 +118,114 @@ func TestNewOrder(t *testing.T) {
 				},
 				Status: Confirmed,
 			},
+			wantErr: false,
+		},
+		{
+			name: "Order with Multiple Items",
+			input: NewOrderArguments{
+				AccountID:     storeID,
+				MarketplaceID: "MLB200004894",
+				Items: []OrderItem{
+					{Title: "Item 1", Quantity: 1, Sku: "SKU-1"},
+					{Title: "Item 2", Quantity: 2, Sku: "SKU-2"},
+				},
+				Status: Confirmed,
+			},
+			want: &Order{
+				AccountID:     storeID,
+				MarketplaceID: "MLB200004894",
+				DateCreated:   time.Now().UTC(),
+				Items: []OrderItem{
+					{Title: "Item 1", Quantity: 1, Sku: "SKU-1"},
+					{Title: "Item 2", Quantity: 2, Sku: "SKU-2"},
+				},
+				Status: Confirmed,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Order with Variations",
+			input: NewOrderArguments{
+				AccountID:     storeID,
+				MarketplaceID: "MLB200004894",
+				Items: []OrderItem{
+					{Title: "Item 1", Quantity: 1, Sku: "SKU-1", VariationID: 123},
+					{Title: "Item 1", Quantity: 1, Sku: "SKU-1", VariationID: 456},
+				},
+				Status: Confirmed,
+			},
+			want: &Order{
+				AccountID:     storeID,
+				MarketplaceID: "MLB200004894",
+				DateCreated:   time.Now().UTC(),
+				Items: []OrderItem{
+					{Title: "Item 1", Quantity: 1, Sku: "SKU-1", VariationID: 123},
+					{Title: "Item 1", Quantity: 1, Sku: "SKU-1", VariationID: 456},
+				},
+				Status: Confirmed,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Order with Empty SKU",
+			input: NewOrderArguments{
+				AccountID:     storeID,
+				MarketplaceID: "MLB200004894",
+				Items: []OrderItem{
+					{Title: "Item 1", Quantity: 1, Sku: ""},
+				},
+				Status: Confirmed,
+			},
+			want: &Order{
+				AccountID:     storeID,
+				MarketplaceID: "MLB200004894",
+				DateCreated:   time.Now().UTC(),
+				Items: []OrderItem{
+					{Title: "Item 1", Quantity: 1, Sku: ""},
+				},
+				Status: Confirmed,
+			},
+			wantErr: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewOrder(tt.input.StoreID, tt.input.MarketplaceID, tt.input.Items, tt.input.Status)
-			if err != nil {
-				t.Errorf("Error creating order: %v", err)
+			got, err := NewOrder(tt.input.AccountID, tt.input.MarketplaceID, tt.input.Items, tt.input.Status)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewOrder() error = %v, wantErr %v", (err != nil), tt.wantErr)
+				return
+			}
+
+			if tt.wantErr {
+				if got != nil {
+					t.Errorf("NewOrder() = %v, want nil", got)
+				}
+				return
 			}
 
 			if got.ID == uuid.Nil {
 				t.Errorf("Order ID is nil")
 			}
-			if got.StoreID != tt.want.StoreID {
-				t.Errorf("Order StoreID = %v, want %v", got.StoreID, tt.want.StoreID)
+
+			if got.AccountID != tt.want.AccountID {
+				t.Errorf("Order AccountID = %v, want %v", got.AccountID, tt.want.AccountID)
 			}
+
 			if got.MarketplaceID != tt.want.MarketplaceID {
 				t.Errorf("Order MarketplaceID = %v, want %v", got.MarketplaceID, tt.want.MarketplaceID)
 			}
+
 			if diff := got.DateCreated.Sub(tt.want.DateCreated); diff > time.Second {
 				t.Errorf("Order DateCreated = %v, want %v", got.DateCreated.Format(time.RFC3339), tt.want.DateCreated.Format(time.RFC3339))
 			}
-			// Asserting that the order items are equal is a bit more complex.
-			// We need to compare the length of the slices and then compare each item.
+
 			if len(got.Items) != len(tt.want.Items) {
-				t.Errorf("Order it has missing items = %v, want %v", len(got.Items), len(tt.want.Items))
+				t.Errorf("Order has wrong number of items = %v, want %v", len(got.Items), len(tt.want.Items))
+				return
 			}
+
 			for i, item := range got.Items {
 				if item.ID == uuid.Nil {
 					t.Errorf("Order Item ID is empty")
@@ -157,7 +239,11 @@ func TestNewOrder(t *testing.T) {
 				if item.Sku != tt.want.Items[i].Sku {
 					t.Errorf("Order Item Sku = %v, want %v", item.Sku, tt.want.Items[i].Sku)
 				}
+				if item.VariationID != tt.want.Items[i].VariationID {
+					t.Errorf("Order Item VariationID = %v, want %v", item.VariationID, tt.want.Items[i].VariationID)
+				}
 			}
+
 			if got.Status != tt.want.Status {
 				t.Errorf("Order Status = %v, want %v", got.Status, tt.want.Status)
 			}

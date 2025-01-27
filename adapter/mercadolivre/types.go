@@ -504,3 +504,15 @@ type AnnouncementPicture struct {
 	MaxSize   string `json:"max_size,omitempty"`
 	Quality   string `json:"quality,omitempty"`
 }
+
+type CompatibilitiesProduct struct {
+	Products []struct {
+		ID                 string `json:"id"`
+		DomainID           string `json:"domain_id"`
+		ItemID             string `json:"item_id"`
+		CatalogProductID   string `json:"catalog_product_id"`
+		CatalogProductName string `json:"catalog_product_name"`
+		Source             string `json:"source"`
+		Universal          bool   `json:"universal"`
+	} `json:"products"`
+}

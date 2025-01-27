@@ -1,0 +1,1 @@
+ALTER TABLE mercadolivre_credentials DROP COLUMN IF EXISTS account_name;

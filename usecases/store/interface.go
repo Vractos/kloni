@@ -6,18 +6,21 @@ import (
 )
 
 type Credentials struct {
-	StoreID         entity.ID
-	MeliAccessToken string
-	MeliUserID      string
+	ID          entity.ID
+	OwnerID     entity.ID
+	AccountName *string
+	*common.MeliCredential
 }
 
 // UseCase interface
 type UseCase interface {
 	RegisterStore(input RegisterStoreDtoInput) (entity.ID, error)
 	RegisterMeliCredentials(input RegisterMeliCredentialsDtoInput) error
-	RetrieveMeliCredentialsFromStoreID(id entity.ID) (*Credentials, error)
-	RetrieveMeliCredentialsFromMeliUserID(id string) (*Credentials, error)
-	RefreshMeliCredential(storeId entity.ID, refreshToken string) (*Credentials, error)
+	// Retrieve all the meli credentials from a store
+	RetrieveMeliCredentialsFromStoreID(id entity.ID) (*[]Credentials, error)
+	// Retrieve all meli credentials from a meli user id
+	RetrieveMeliCredentialsFromMeliUserID(id string) (*[]Credentials, error)
+	RefreshMeliCredential(accountId entity.ID, refreshToken string) (*Credentials, error)
 }
 
 /*
@@ -31,15 +34,29 @@ type UseCase interface {
 // Repository reader interface
 type RepoReader interface {
 	Get(id string) (*entity.Store, error)
-	RetrieveMeliCredentialsFromStoreID(id entity.ID) (*common.MeliCredential, error)
-	RetrieveMeliCredentialsFromMeliUserID(id string) (*entity.ID, *common.MeliCredential, error)
+	// Retrieves all meli credentials from a store
+	RetrieveMeliCredentialsFromStoreID(id entity.ID) (*[]Credentials, error)
+	// Retrieves meli credentials from a meli user id
+	//
+	// Example of return:
+	//
+	// 	Credentials {
+	// 		ID: "000000-000000-000000-000000-000000",
+	// 		OwnerID: "000000-000000-000000-000000-000000",
+	// 		AccountName: "Name",
+	// 		AccessToken: "111111-111111-111111-111111-111111",
+	// 		RefreshToken: "222222-222222-222222-222222-222222",
+	// 		UpdateAt: "2021-01-01T00:00:00Z",
+	// 	}
+	//
+	RetrieveMeliCredentialsFromMeliUserID(accountId string) (*[]Credentials, error)
 }
 
 // Repository writer interface
 type RepoWriter interface {
 	Create(e *entity.Store) (entity.ID, error)
-	RegisterMeliCredential(id entity.ID, c *common.MeliCredential) error
-	UpdateMeliCredentials(id entity.ID, c *common.MeliCredential) error
+	RegisterMeliCredential(id entity.ID, owner_id entity.ID, c *common.MeliCredential, account_name string) error
+	UpdateMeliCredentials(accountId entity.ID, c *common.MeliCredential) error
 	Update(e *entity.Store) error
 	Delete(id entity.ID) error
 }
