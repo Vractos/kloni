@@ -196,13 +196,15 @@ func (a *AnnouncementService) CloneAnnouncement(input CloneAnnouncementDtoInput,
 			if err != nil {
 				a.logger.Error("Error to add description", err, zap.String("announcement_id", *rAnn))
 			}
+
+			// TODO: When the product (root and new) are from the same account, this [method](https://arc.net/l/quote/gwptiykv) should be used
+			err = a.cloneCompatibilityProductsFromDiffAccounts(input.RootID, *rAnn, rootCredentials.AccessToken, credential.AccessToken)
 		}
 	}
 
 	return nil
 }
 
-// TODO: Implement this properly
 func (a *AnnouncementService) ImportAnnouncement(input ImportAnnouncementDtoInput, credentials *[]store.Credentials) error {
 	credMap, err := utils.HashMap(credentials, "ID")
 	if err != nil {
@@ -246,6 +248,9 @@ func (a *AnnouncementService) ImportAnnouncement(input ImportAnnouncementDtoInpu
 	}
 
 	err = a.cloneCompatibilityProductsFromDiffAccounts(input.AnnouncementID, *rAnn, originCredentials.AccessToken, credential.AccessToken)
+	if err != nil {
+		a.logger.Error("Error to clone compatibility products", err, zap.String("announcement_id", input.AnnouncementID))
+	}
 
 	return nil
 }
