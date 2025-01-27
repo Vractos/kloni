@@ -56,17 +56,17 @@ func (mr *MockUseCaseMockRecorder) CloneAnnouncement(input, credentials any) *go
 }
 
 // ImportAnnouncement mocks base method.
-func (m *MockUseCase) ImportAnnouncement(input announcement.ImportAnnouncementDtoInput) error {
+func (m *MockUseCase) ImportAnnouncement(input announcement.ImportAnnouncementDtoInput, credentials *[]store.Credentials) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ImportAnnouncement", input)
+	ret := m.ctrl.Call(m, "ImportAnnouncement", input, credentials)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ImportAnnouncement indicates an expected call of ImportAnnouncement.
-func (mr *MockUseCaseMockRecorder) ImportAnnouncement(input any) *gomock.Call {
+func (mr *MockUseCaseMockRecorder) ImportAnnouncement(input, credentials any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportAnnouncement", reflect.TypeOf((*MockUseCase)(nil).ImportAnnouncement), input)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportAnnouncement", reflect.TypeOf((*MockUseCase)(nil).ImportAnnouncement), input, credentials)
 }
 
 // RetrieveAnnouncements mocks base method.
