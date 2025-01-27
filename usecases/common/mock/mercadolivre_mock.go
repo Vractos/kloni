@@ -169,6 +169,21 @@ func (mr *MockmeliReaderAnnouncementMockRecorder) GetAnnouncement(id, accessToke
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAnnouncement", reflect.TypeOf((*MockmeliReaderAnnouncement)(nil).GetAnnouncement), id, accessToken)
 }
 
+// GetAnnouncementCompatibilities mocks base method.
+func (m *MockmeliReaderAnnouncement) GetAnnouncementCompatibilities(id, accessToken string) ([]common.AnnouncementCompatibilityProduct, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAnnouncementCompatibilities", id, accessToken)
+	ret0, _ := ret[0].([]common.AnnouncementCompatibilityProduct)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAnnouncementCompatibilities indicates an expected call of GetAnnouncementCompatibilities.
+func (mr *MockmeliReaderAnnouncementMockRecorder) GetAnnouncementCompatibilities(id, accessToken any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAnnouncementCompatibilities", reflect.TypeOf((*MockmeliReaderAnnouncement)(nil).GetAnnouncementCompatibilities), id, accessToken)
+}
+
 // GetAnnouncements mocks base method.
 func (m *MockmeliReaderAnnouncement) GetAnnouncements(ids []string, accessToken string) (*[]common.MeliAnnouncement, error) {
 	m.ctrl.T.Helper()
@@ -250,6 +265,34 @@ func NewMockmeliWriterAnnouncement(ctrl *gomock.Controller) *MockmeliWriterAnnou
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockmeliWriterAnnouncement) EXPECT() *MockmeliWriterAnnouncementMockRecorder {
 	return m.recorder
+}
+
+// AddCompatibilities mocks base method.
+func (m *MockmeliWriterAnnouncement) AddCompatibilities(announcementId, accessToken string, compatibilities *[]common.AnnouncementCompatibilityProduct) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddCompatibilities", announcementId, accessToken, compatibilities)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddCompatibilities indicates an expected call of AddCompatibilities.
+func (mr *MockmeliWriterAnnouncementMockRecorder) AddCompatibilities(announcementId, accessToken, compatibilities any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddCompatibilities", reflect.TypeOf((*MockmeliWriterAnnouncement)(nil).AddCompatibilities), announcementId, accessToken, compatibilities)
+}
+
+// AddCompatibilityException mocks base method.
+func (m *MockmeliWriterAnnouncement) AddCompatibilityException(announcementId, accessToken string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddCompatibilityException", announcementId, accessToken)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddCompatibilityException indicates an expected call of AddCompatibilityException.
+func (mr *MockmeliWriterAnnouncementMockRecorder) AddCompatibilityException(announcementId, accessToken any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddCompatibilityException", reflect.TypeOf((*MockmeliWriterAnnouncement)(nil).AddCompatibilityException), announcementId, accessToken)
 }
 
 // AddDescription mocks base method.
@@ -338,6 +381,34 @@ func (m *MockMercadoLivre) EXPECT() *MockMercadoLivreMockRecorder {
 	return m.recorder
 }
 
+// AddCompatibilities mocks base method.
+func (m *MockMercadoLivre) AddCompatibilities(announcementId, accessToken string, compatibilities *[]common.AnnouncementCompatibilityProduct) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddCompatibilities", announcementId, accessToken, compatibilities)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddCompatibilities indicates an expected call of AddCompatibilities.
+func (mr *MockMercadoLivreMockRecorder) AddCompatibilities(announcementId, accessToken, compatibilities any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddCompatibilities", reflect.TypeOf((*MockMercadoLivre)(nil).AddCompatibilities), announcementId, accessToken, compatibilities)
+}
+
+// AddCompatibilityException mocks base method.
+func (m *MockMercadoLivre) AddCompatibilityException(announcementId, accessToken string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddCompatibilityException", announcementId, accessToken)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddCompatibilityException indicates an expected call of AddCompatibilityException.
+func (mr *MockMercadoLivreMockRecorder) AddCompatibilityException(announcementId, accessToken any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddCompatibilityException", reflect.TypeOf((*MockMercadoLivre)(nil).AddCompatibilityException), announcementId, accessToken)
+}
+
 // AddDescription mocks base method.
 func (m *MockMercadoLivre) AddDescription(description, announcementId, accessToken string) error {
 	m.ctrl.T.Helper()
@@ -380,6 +451,21 @@ func (m *MockMercadoLivre) GetAnnouncement(id, accessToken string) (*common.Meli
 func (mr *MockMercadoLivreMockRecorder) GetAnnouncement(id, accessToken any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAnnouncement", reflect.TypeOf((*MockMercadoLivre)(nil).GetAnnouncement), id, accessToken)
+}
+
+// GetAnnouncementCompatibilities mocks base method.
+func (m *MockMercadoLivre) GetAnnouncementCompatibilities(id, accessToken string) ([]common.AnnouncementCompatibilityProduct, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAnnouncementCompatibilities", id, accessToken)
+	ret0, _ := ret[0].([]common.AnnouncementCompatibilityProduct)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAnnouncementCompatibilities indicates an expected call of GetAnnouncementCompatibilities.
+func (mr *MockMercadoLivreMockRecorder) GetAnnouncementCompatibilities(id, accessToken any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAnnouncementCompatibilities", reflect.TypeOf((*MockMercadoLivre)(nil).GetAnnouncementCompatibilities), id, accessToken)
 }
 
 // GetAnnouncements mocks base method.

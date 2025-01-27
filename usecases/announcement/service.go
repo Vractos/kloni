@@ -196,15 +196,96 @@ func (a *AnnouncementService) CloneAnnouncement(input CloneAnnouncementDtoInput,
 			if err != nil {
 				a.logger.Error("Error to add description", err, zap.String("announcement_id", *rAnn))
 			}
+
+			// TODO: When the product (root and new) are from the same account, this [method](https://arc.net/l/quote/gwptiykv) should be used
+			err = a.cloneCompatibilityProductsFromDiffAccounts(input.RootID, *rAnn, rootCredentials.AccessToken, credential.AccessToken)
 		}
 	}
 
 	return nil
 }
 
-// TODO: Implement this properly
-func (a *AnnouncementService) ImportAnnouncement(input ImportAnnouncementDtoInput) error {
-	panic("not implemented")
+func (a *AnnouncementService) ImportAnnouncement(input ImportAnnouncementDtoInput, credentials *[]store.Credentials) error {
+	credMap, err := utils.HashMap(credentials, "ID")
+	if err != nil {
+		a.logger.Error("Error to create credentials map", err)
+		return errors.New("error to create credentials map")
+	}
+	originCredentials := findCredentialsByID(input.AccountOrigin, credMap)
+
+	ann, err := a.getAnnouncement(input.AnnouncementID, *originCredentials)
+	if err != nil {
+		a.logger.Error(
+			"Error in retrieving root announcement during the cloning process",
+			err,
+			zap.String("announcement_id", input.AnnouncementID))
+		return errors.New("error to clone the announcement - get root announcement")
+	}
+
+	credential := findCredentialsByID(input.AccountDestiny, credMap)
+	newAnn, err := entity.NewAnnouncement(ann)
+	if err != nil {
+		a.logger.Error("Error in the generation of a new announcement", err, zap.String("announcement_id", ann.ID))
+		return err
+	}
+
+	jsonAnn, err := json.Marshal(newAnn)
+
+	rAnn, err := a.meli.PublishAnnouncement(jsonAnn, credential.AccessToken)
+	if err != nil {
+		cErr := &AnnouncementError{
+			Message: "Error to publish an announcement",
+		}
+		a.logger.Error(cErr.Message, err, zap.String("announcement_id", input.AnnouncementID))
+		return errors.New("error to publish clone")
+	}
+
+	a.logger.Info("Imported", zap.String("new_announcement_id", *rAnn))
+
+	err = a.meli.AddDescription(ann.Description, *rAnn, credential.AccessToken)
+	if err != nil {
+		a.logger.Error("Error to add description", err, zap.String("announcement_id", *rAnn))
+	}
+
+	err = a.cloneCompatibilityProductsFromDiffAccounts(input.AnnouncementID, *rAnn, originCredentials.AccessToken, credential.AccessToken)
+	if err != nil {
+		a.logger.Error("Error to clone compatibility products", err, zap.String("announcement_id", input.AnnouncementID))
+	}
+
+	return nil
+}
+
+func (a *AnnouncementService) cloneCompatibilityProductsFromDiffAccounts(rootAnnID, newAnnID, rAccessToken, dAccessToken string) error {
+	compat, err := a.meli.GetAnnouncementCompatibilities(rootAnnID, rAccessToken)
+	if err != nil {
+		cErr := &AnnouncementError{
+			Message: "Error to retrieve compatibilities",
+		}
+		a.logger.Error(cErr.Message, err, zap.String("announcement_id", rootAnnID))
+		return cErr
+	}
+
+	if len(compat) != 0 {
+		err = a.meli.AddCompatibilities(newAnnID, dAccessToken, &compat)
+		if err != nil {
+			cErr := &AnnouncementError{
+				Message: "Error to add compatibilities",
+			}
+			a.logger.Error(cErr.Message, err, zap.String("announcement_id", newAnnID))
+			return cErr
+		}
+	} else {
+		err = a.meli.AddCompatibilityException(newAnnID, dAccessToken)
+		if err != nil {
+			cErr := &AnnouncementError{
+				Message: "Error to add compatibility exception",
+			}
+			a.logger.Error(cErr.Message, err, zap.String("announcement_id", newAnnID))
+			return cErr
+		}
+	}
+
+	return nil
 }
 
 func findCredentialsByID(id entity.ID, hashMap map[interface{}]store.Credentials) *store.Credentials {
